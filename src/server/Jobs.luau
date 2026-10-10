@@ -81,7 +81,8 @@ function Jobs.work(player, jobId)
 	elseif data.happiness < 25 then
 		pay = math.floor(pay * 0.75)
 	end
-	pay = math.floor(pay * (1 + Pets.buff(player, "workPay")))
+	local vip = player:GetAttribute("Pass_vip") and Config.VIP_PAY_BONUS or 0
+	pay = math.floor(pay * (1 + Pets.buff(player, "workPay") + vip))
 	PlayerData.addBucks(player, pay)
 	PlayerData.addStat(data, "energy", -energyCost)
 	PlayerData.addStat(data, "hunger", -5)

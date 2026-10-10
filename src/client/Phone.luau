@@ -83,6 +83,9 @@ function Phone.open(actions)
 			if app.id == "visit" then
 				close()
 				actions.visit()
+			elseif app.id == "store" then
+				close()
+				actions.store()
 			elseif app.id == "home" then
 				Remotes.get("Teleport"):FireServer("home")
 				close()

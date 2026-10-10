@@ -20,6 +20,7 @@ local Arcade = require(script.Parent.Arcade)
 local Obby = require(script.Parent.Obby)
 local Quests = require(script.Parent.Quests)
 local Leaderboard = require(script.Parent.Leaderboard)
+local Monetization = require(script.Parent.Monetization)
 
 World.build()
 PlayerData.init()
@@ -33,6 +34,7 @@ Arcade.init()
 Obby.init(World.obby)
 Quests.init()
 Leaderboard.init()
+Monetization.init()
 
 local handlers = {
 	Shop = function(player, prompt)

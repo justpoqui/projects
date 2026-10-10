@@ -87,6 +87,7 @@ function Housing.assign(player, data)
 				spawnFurniture(plot, player, entry)
 			end
 			player:SetAttribute("PlotIndex", plot.index)
+			player:SetAttribute("Neighborhood", plot.neighborhood)
 			player:SetAttribute("HouseLikes", data.likes)
 			return plot
 		end

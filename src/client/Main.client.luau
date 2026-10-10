@@ -15,10 +15,13 @@ local PetsUI = require(script.Parent.PetsUI)
 local HouseUI = require(script.Parent.HouseUI)
 local Phone = require(script.Parent.Phone)
 local Arcade = require(script.Parent.Arcade)
+local StoreUI = require(script.Parent.StoreUI)
 -- Minigames register themselves with Arcade
 require(script.Parent.BerryCatch)
 require(script.Parent.Stacker)
 require(script.Parent.Memory)
+require(script.Parent.Whack)
+require(script.Parent.Pattern)
 
 local player = Players.LocalPlayer
 
@@ -44,6 +47,9 @@ function actions.house()
 end
 function actions.visit()
 	HouseUI.visit()
+end
+function actions.store()
+	StoreUI.open()
 end
 function actions.phone()
 	Placement.cancel()

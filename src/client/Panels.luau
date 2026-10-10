@@ -130,6 +130,12 @@ function Panels.shop(storeId)
 			TextColor3 = Theme.Muted, Size = UDim2.new(1, 0, 0, 22), LayoutOrder = nextOrder(), Parent = content,
 		})
 		UI.heading(content, nextOrder(), "Berry Boxes - what will you get?")
+		if player:GetAttribute("Pass_lucky") then
+			UI.label({
+				Text = "Lucky Berries pass: Epic & Legendary chances doubled!", Font = Theme.BodyFont,
+				TextColor3 = Theme.Good, Size = UDim2.new(1, 0, 0, 20), LayoutOrder = nextOrder(), Parent = content,
+			})
+		end
 		for _, kind in Config.BoxKindOrder do
 			local box = Config.BoxKinds[kind]
 			local price = shop.prices[kind]
@@ -140,7 +146,7 @@ function Panels.shop(storeId)
 				Text = shop.label .. " " .. box.name, Size = UDim2.new(1, -150, 0, 26), Position = UDim2.fromOffset(12, 8),
 				TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = box.color, Parent = card,
 			})
-			oddsChips(card, Config.boxChances(kind, shop.pool))
+			oddsChips(card, Config.boxChances(kind, shop.pool, player:GetAttribute("Pass_lucky") == true))
 			UI.button({
 				Text = "Open " .. price, Color = data.bucks >= price and Theme.Good or Theme.Muted,
 				Size = UDim2.fromOffset(120, 44), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),

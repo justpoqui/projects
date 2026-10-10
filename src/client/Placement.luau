@@ -135,7 +135,7 @@ function Placement.start(itemId)
 	ghost.Parent = Workspace
 
 	local bar = UI.new("Frame", {
-		Name = "PlacementBar", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -108),
+		Name = "PlacementBar", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -64),
 		Size = UDim2.new(0.9, 0, 0, 92), BackgroundColor3 = Theme.Panel, Parent = UI.Screen,
 	}, {
 		UI.corner(14), UI.stroke(Theme.Accent, 2), UI.padding(8),

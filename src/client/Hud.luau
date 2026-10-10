@@ -60,22 +60,54 @@ function Hud.init(actions)
 		end
 	end)
 
-	-- Bottom menu: two rows of three
-	local menu = UI.new("Frame", {
-		Name = "Menu", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.new(0.96, 0, 0, 88), BackgroundTransparency = 1, Parent = UI.Screen,
-	}, {
-		UI.new("UIGridLayout", {
-			CellSize = UDim2.new(1 / 3, -6, 0, 40), CellPadding = UDim2.fromOffset(6, 6),
-			HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-		UI.new("UISizeConstraint", { MaxSize = Vector2.new(480, 88) }),
+	-- Left side, under the stats panel: the Berry Phone
+	local phoneButton = UI.button({
+		Name = "PhoneButton", Text = "", Color = Color3.fromRGB(40, 35, 60),
+		Position = UDim2.fromOffset(12, 222), Size = UDim2.fromOffset(70, 100), Parent = UI.Screen,
+		OnClick = actions.phone,
+	})
+	phoneButton:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 18)
+	UI.stroke(Theme.Accent, 3).Parent = phoneButton
+	UI.new("TextLabel", {
+		Text = "📱", BackgroundTransparency = 1, TextScaled = true, Size = UDim2.new(1, 0, 0.6, 0), Parent = phoneButton,
+	})
+	UI.label({
+		Text = "Berry Phone", TextColor3 = Color3.new(1, 1, 1), Size = UDim2.new(1, 0, 0.35, 0),
+		Position = UDim2.fromScale(0, 0.63), Parent = phoneButton,
 	})
 
+	-- Right side: backpack, buddies, Robux store
+	local right = UI.new("Frame", {
+		-- Kept above the middle so it clears the mobile jump button
+		Name = "RightMenu", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, -40),
+		Size = UDim2.fromOffset(110, 3 * 54), BackgroundTransparency = 1, Parent = UI.Screen,
+	}, {
+		UI.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	local sideButtons = {
+		{ text = "🎒 Backpack", color = Theme.Accent, fn = actions.backpack },
+		{ text = "🐾 Buddies", color = Color3.fromRGB(240, 150, 60), fn = actions.pets },
+		{ text = "💎 Store", color = Color3.fromRGB(40, 170, 90), fn = actions.store },
+	}
+	for i, info in sideButtons do
+		UI.button({
+			Text = info.text, Color = info.color, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 46), Parent = right,
+			OnClick = info.fn,
+		})
+	end
+
+	-- Bottom: quests, house, profile
+	local menu = UI.new("Frame", {
+		Name = "Menu", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -10),
+		Size = UDim2.new(0.7, 0, 0, 44), BackgroundTransparency = 1, Parent = UI.Screen,
+	}, {
+		UI.new("UIGridLayout", {
+			CellSize = UDim2.new(1 / 3, -6, 0, 42), CellPadding = UDim2.fromOffset(6, 6),
+			HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		UI.new("UISizeConstraint", { MaxSize = Vector2.new(420, 44) }),
+	})
 	local buttons = {
-		{ text = "Berry Phone", color = Color3.fromRGB(40, 40, 60), fn = actions.phone },
-		{ text = "Backpack", color = Theme.Accent, fn = actions.backpack },
-		{ text = "Buddies", color = Color3.fromRGB(240, 150, 60), fn = actions.pets },
 		{ text = "Quests", color = Theme.Gold, fn = actions.quests },
 		{ text = "My House", color = Color3.fromRGB(120, 110, 220), fn = actions.house },
 		{ text = "Me", color = Theme.Pink, fn = actions.profile },

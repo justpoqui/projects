@@ -48,7 +48,8 @@ local function template()
 		likesGiven = { day = 0, ids = {} }, -- [tostring(userId)] = true, reset daily
 		daily = { day = 0, streak = 0 },
 		quests = { day = 0, list = {} }, -- list of { id, progress, claimed }
-		obbyLast = 0, -- os.time() of the last obby prize
+		obbyTimes = {}, -- ["L1"] = os.time() of the last prize for obby level 1, etc.
+		receipts = {}, -- [purchaseId] = os.time(): Robux purchases already granted
 		nextUid = 1,
 	}
 end
@@ -87,6 +88,10 @@ local function reconcile(data)
 		if data.house[key] == nil then
 			data.house[key] = value
 		end
+	end
+	if data.obbyLast then
+		data.obbyTimes.L1 = data.obbyLast
+		data.obbyLast = nil
 	end
 	migrate(data)
 	return data
@@ -147,14 +152,17 @@ function PlayerData.load(player)
 	return data
 end
 
+-- Returns true if saved (or if saving isn't possible here, e.g. Studio
+-- without API access), false if the DataStore write failed.
 function PlayerData.save(player)
 	local data = profiles[player]
 	if not data or not store or player:GetAttribute("NoSave") then
-		return
+		return data ~= nil
 	end
-	retry(function()
+	local ok = retry(function()
 		store:SetAsync(key(player), data)
 	end)
+	return ok
 end
 
 function PlayerData.get(player)

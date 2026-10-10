@@ -216,19 +216,26 @@ function Config.poolByTier(pool)
 end
 
 -- Chance (0-1) of each tier for a box kind in a pool, skipping empty tiers.
-function Config.boxChances(boxKind, pool)
+-- lucky: the player owns the Lucky Berries pass.
+function Config.boxChances(boxKind, pool, lucky)
 	local byTier = Config.poolByTier(pool)
 	local odds = Config.BoxKinds[boxKind].odds
+	local function weight(tier, w)
+		if lucky and (tier == "Epic" or tier == "Legendary") then
+			return w * Config.LUCKY_MULTIPLIER
+		end
+		return w
+	end
 	local total = 0
-	for tier, weight in odds do
+	for tier, w in odds do
 		if byTier[tier] then
-			total += weight
+			total += weight(tier, w)
 		end
 	end
 	local chances = {}
-	for tier, weight in odds do
+	for tier, w in odds do
 		if byTier[tier] then
-			chances[tier] = weight / total
+			chances[tier] = weight(tier, w) / total
 		end
 	end
 	return chances
@@ -344,12 +351,24 @@ Config.Minigames = {
 		name = "Memory Match", blurb = "Find all the matching pairs",
 		minTime = 5, maxTime = 80, maxScore = 140, perPoint = 0.4, maxPayout = 55,
 	},
+	whack = {
+		name = "Whack-a-Berry", blurb = "Bop the berries before they hide",
+		minTime = Config.ARCADE_DURATION - 2, maxTime = Config.ARCADE_DURATION + 20,
+		maxScore = 100, perPoint = 0.6, maxPayout = 50,
+	},
+	pattern = {
+		name = "Pattern Pop", blurb = "Watch the lights, then repeat the pattern",
+		minTime = 1, maxTime = 600, maxScore = 30, maxRate = 0.5, perPoint = 3, maxPayout = 60,
+	},
 }
-Config.MinigameOrder = { "berrycatch", "stacker", "memory" }
+Config.MinigameOrder = { "berrycatch", "stacker", "memory", "whack", "pattern" }
 Config.MEMORY_DURATION = 60
 
-Config.OBBY_REWARD = 75
-Config.OBBY_COOLDOWN = 600 -- seconds between prizes (saved across sessions)
+-- Berry Dash obby levels. Each prize has its own cooldown (saved across sessions).
+Config.ObbyLevels = {
+	{ name = "Berry Dash", reward = 75, cooldown = 600 },
+	{ name = "Berry Dash 2: Sky Run", reward = 200, cooldown = 900 },
+}
 
 -- Daily reward & quests ----------------------------------------------------
 
@@ -383,6 +402,9 @@ Config.PhoneApps = {
 	{ id = "home", label = "Home", icon = "🏠", color = Color3.fromRGB(90, 190, 110) },
 	{ id = "plaza", label = "Town Square", icon = "⛲", color = Color3.fromRGB(80, 150, 230) },
 	{ id = "visit", label = "Visit", icon = "👋", color = Color3.fromRGB(60, 180, 170) },
+	{ id = "store", label = "Robux Store", icon = "💎", color = Color3.fromRGB(40, 170, 90) },
+	{ id = "maplecourt", label = "Maple Court", icon = "🍁", color = Color3.fromRGB(220, 110, 50) },
+	{ id = "willowway", label = "Willow Way", icon = "🌳", color = Color3.fromRGB(70, 150, 90) },
 	{ id = "grocery", label = "Grocery", icon = "🍎", color = Color3.fromRGB(230, 80, 80) },
 	{ id = "furniture", label = "Furniture", icon = "🛋️", color = Color3.fromRGB(140, 90, 190) },
 	{ id = "boutique", label = "Boutique", icon = "👒", color = Color3.fromRGB(255, 120, 170) },
@@ -396,6 +418,29 @@ Config.PhoneApps = {
 	{ id = "lab", label = "Science Lab", icon = "🧪", color = Color3.fromRGB(60, 180, 180) },
 	{ id = "townhall", label = "Town Hall", icon = "🏛️", color = Color3.fromRGB(120, 120, 135) },
 }
+
+-- Robux ----------------------------------------------------------------------
+-- Create these on the Creator Dashboard (your experience > Monetization), then
+-- paste each ID below. Robux from every sale goes to the experience's owner.
+-- An id of 0 means "not set up yet": the store shows it as unavailable.
+
+-- Developer products can be bought again and again.
+Config.Products = {
+	{ key = "bucks_small", id = 0, name = "Pile of Berrybucks", robux = 25, bucks = 500 },
+	{ key = "bucks_medium", id = 0, name = "Bag of Berrybucks", robux = 75, bucks = 2000 },
+	{ key = "bucks_large", id = 0, name = "Vault of Berrybucks", robux = 200, bucks = 6000 },
+	{ key = "royal_buddy", id = 0, name = "Royal Buddy Box", robux = 100, box = { store = "buddies", kind = "royal" } },
+}
+
+-- Game passes are bought once and kept forever.
+Config.Passes = {
+	{ key = "vip", id = 0, name = "VIP", robux = 199,
+		perks = "+25% job pay, double daily reward, and a gold VIP tag" },
+	{ key = "lucky", id = 0, name = "Lucky Berries", robux = 299,
+		perks = "Doubles your chance of Epic and Legendary items from every Berry Box" },
+}
+Config.VIP_PAY_BONUS = 0.25
+Config.LUCKY_MULTIPLIER = 2 -- applied to Epic and Legendary box weights
 
 function Config.jobPay(jobId, level)
 	local job = Config.Jobs[jobId]

@@ -5,6 +5,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Builders = require(Shared.Builders)
 
 local World = {
 	buildings = {}, -- [id] = { model, cframe }
@@ -369,6 +370,7 @@ local function buildPlot(index, position, facing)
 		likePrompt = likePrompt,
 		furnitureFolder = furnitureFolder,
 		owner = nil,
+		neighborhood = "",
 		-- Filled in by World.buildHouse:
 		house = nil,
 		floor = nil,
@@ -381,6 +383,13 @@ local function buildPlot(index, position, facing)
 end
 
 -- Berry Dash obstacle course behind the arcade. Returns its folder.
+-- Attributes the Obby system reads:
+--   Checkpoint = n   respawn spot for checkpoint n (1 = start of level 1)
+--   Kill = n         touching it sends you to checkpoint n
+--   Prize = n        finish pad for level n
+--   Vanish = phase   platform that blinks out and back in
+--   Spin = speed     kill bar rotating about its center (radians/second)
+--   PulseAmp/PulseSpeed/PulsePhase   kill wall bobbing up and down
 local function buildObby()
 	local course = folder("BerryDash", root)
 	local platformColor = Color3.fromRGB(255, 160, 200)
@@ -389,19 +398,55 @@ local function buildObby()
 			Name = "Platform", Size = size, CFrame = CFrame.new(position), Color = color or platformColor,
 		})
 	end
-	local function kill(position, size)
+	local function kill(position, size, checkpoint, props)
 		local p = part(course, {
 			Name = "KillPart", Size = size, CFrame = CFrame.new(position),
 			Color = Color3.fromRGB(240, 40, 60), Material = Enum.Material.Neon,
 		})
-		p:SetAttribute("Kill", true)
+		for key, value in props or {} do
+			p[key] = value
+		end
+		p:SetAttribute("Kill", checkpoint)
 		return p
 	end
+	local function label(parent, text, color)
+		local gui = Instance.new("BillboardGui")
+		gui.Size = UDim2.fromOffset(220, 50)
+		gui.StudsOffset = Vector3.new(0, 3, 0)
+		gui.MaxDistance = 80
+		gui.Parent = parent
+		local t = Instance.new("TextLabel")
+		t.Size = UDim2.fromScale(1, 1)
+		t.BackgroundTransparency = 1
+		t.Font = Enum.Font.FredokaOne
+		t.TextScaled = true
+		t.TextColor3 = color
+		t.TextStrokeTransparency = 0.3
+		t.Text = text
+		t.Parent = gui
+	end
+	local function prize(level, position, trophyColor)
+		local pad = part(course, {
+			Name = "Prize" .. level, Size = Vector3.new(6, 0.4, 6), CFrame = CFrame.new(position),
+			Color = Color3.fromRGB(255, 200, 60), Material = Enum.Material.Neon,
+		})
+		pad:SetAttribute("Prize", level)
+		local trophy = part(course, {
+			Name = "Trophy", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3),
+			CFrame = CFrame.new(position + Vector3.new(0, 4.3, -4)),
+			Color = trophyColor, Material = Enum.Material.Foil, CanCollide = false,
+		})
+		Instance.new("Sparkles").Parent = trophy
+		label(pad, "FINISH! Step on me", Color3.fromRGB(255, 220, 90))
+		return pad
+	end
 
-	part(course, {
+	-- Level 1 ------------------------------------------------------------
+	local start = part(course, {
 		Name = "Start", Size = Vector3.new(10, 0.6, 8), CFrame = CFrame.new(125, 0.3, -66),
 		Color = Color3.fromRGB(120, 220, 140), Material = Enum.Material.Neon,
 	})
+	start:SetAttribute("Checkpoint", 1)
 	-- Signs face +X, the side players walk around from (rotating by -90 degrees
 	-- turns a sign's -Z text face toward +X).
 	sign(course, CFrame.new(119, 5, -66) * CFrame.Angles(0, -math.pi / 2, 0), Vector3.new(12, 3, 0.4),
@@ -420,41 +465,84 @@ local function buildObby()
 	platform(Vector3.new(131, 8, -104), Vector3.new(6, 1, 6))
 	platform(Vector3.new(125, 9, -116), Vector3.new(2, 1, 14), Color3.fromRGB(150, 80, 200))
 	platform(Vector3.new(125, 10, -128), Vector3.new(8, 1, 8))
-	kill(Vector3.new(125, 10.7, -128), Vector3.new(8, 0.4, 1.5))
+	kill(Vector3.new(125, 10.7, -128), Vector3.new(8, 0.4, 1.5), 1)
 	platform(Vector3.new(125, 12, -138), Vector3.new(4, 1, 4))
 	platform(Vector3.new(125, 14, -146), Vector3.new(4, 1, 4))
 	platform(Vector3.new(125, 16, -154), Vector3.new(4, 1, 4))
 	platform(Vector3.new(121, 17, -163), Vector3.new(2, 1, 10), Color3.fromRGB(150, 80, 200))
 	platform(Vector3.new(129, 18, -172), Vector3.new(2, 1, 10), Color3.fromRGB(150, 80, 200))
-	kill(Vector3.new(125, 19, -186), Vector3.new(12, 1, 12))
+	kill(Vector3.new(125, 19, -186), Vector3.new(12, 1, 12), 1)
 	platform(Vector3.new(122, 20, -182), Vector3.new(2.5, 1, 2.5), Color3.fromRGB(90, 200, 255))
 	platform(Vector3.new(128, 20, -186), Vector3.new(2.5, 1, 2.5), Color3.fromRGB(90, 200, 255))
 	platform(Vector3.new(123, 20, -190), Vector3.new(2.5, 1, 2.5), Color3.fromRGB(90, 200, 255))
 	platform(Vector3.new(125, 21, -200), Vector3.new(12, 1, 12))
+	prize(1, Vector3.new(125, 21.7, -200), Color3.fromRGB(255, 200, 60))
 
-	local prize = part(course, {
-		Name = "Prize", Size = Vector3.new(6, 0.4, 6), CFrame = CFrame.new(125, 21.7, -200),
-		Color = Color3.fromRGB(255, 200, 60), Material = Enum.Material.Neon,
+	-- Level 2: Sky Run -----------------------------------------------------
+	-- Starts at the level 1 finish and heads east (+X), then up a truss and
+	-- back west. Falling anywhere hits a hidden net that returns you to
+	-- checkpoint 2 instead of the ground.
+	local checkpoint2 = part(course, {
+		Name = "Checkpoint2", Size = Vector3.new(4, 0.3, 2), CFrame = CFrame.new(129, 21.65, -205),
+		Color = Color3.fromRGB(90, 200, 255), Material = Enum.Material.Neon,
 	})
-	local trophy = part(course, {
-		Name = "Trophy", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3), CFrame = CFrame.new(125, 26, -204),
-		Color = Color3.fromRGB(255, 200, 60), Material = Enum.Material.Foil, CanCollide = false,
+	checkpoint2:SetAttribute("Checkpoint", 2)
+	label(checkpoint2, "LEVEL 2 (hard!) >>>", Color3.fromRGB(120, 210, 255))
+	kill(Vector3.new(171, 12, -218), Vector3.new(72, 1, 60), 2, { Transparency = 1, CanCollide = false })
+
+	local blink = Color3.fromRGB(120, 255, 200)
+	local function vanishing(position, size, phase)
+		local p = platform(position, size, blink)
+		p.Material = Enum.Material.Neon
+		p:SetAttribute("Vanish", phase)
+		return p
+	end
+	-- Blinking stepping stones
+	vanishing(Vector3.new(138, 22, -200), Vector3.new(4, 1, 4), 0)
+	vanishing(Vector3.new(146, 23, -200), Vector3.new(4, 1, 4), 1)
+	vanishing(Vector3.new(154, 24, -200), Vector3.new(4, 1, 4), 2)
+	-- Spinner: jump the sweeping bar
+	platform(Vector3.new(166, 24, -200), Vector3.new(14, 1, 14), Color3.fromRGB(150, 80, 200))
+	kill(Vector3.new(166, 25.3, -200), Vector3.new(13, 1, 1), 2, { CanCollide = false }):SetAttribute("Spin", 1.6)
+	part(course, {
+		Name = "SpinnerHub", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.5, 2, 2),
+		CFrame = CFrame.new(166, 25.6, -200) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(60, 60, 70),
 	})
-	local sparkle = Instance.new("Sparkles")
-	sparkle.Parent = trophy
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(200, 50)
-	gui.StudsOffset = Vector3.new(0, 3, 0)
-	gui.Parent = prize
-	local text = Instance.new("TextLabel")
-	text.Size = UDim2.fromScale(1, 1)
-	text.BackgroundTransparency = 1
-	text.Font = Enum.Font.FredokaOne
-	text.TextScaled = true
-	text.TextColor3 = Color3.fromRGB(255, 220, 90)
-	text.TextStrokeTransparency = 0.3
-	text.Text = "FINISH! Step on me"
-	text.Parent = gui
+	-- Tiny pads, each a little higher
+	local tiny = Color3.fromRGB(90, 200, 255)
+	platform(Vector3.new(176, 25, -200), Vector3.new(1.5, 1, 1.5), tiny)
+	platform(Vector3.new(182, 26, -196), Vector3.new(1.5, 1, 1.5), tiny)
+	platform(Vector3.new(188, 27, -200), Vector3.new(1.5, 1, 1.5), tiny)
+	platform(Vector3.new(194, 28, -204), Vector3.new(1.5, 1, 1.5), tiny)
+	-- Tightrope
+	platform(Vector3.new(198, 28, -212), Vector3.new(1, 1, 12), Color3.fromRGB(255, 200, 60))
+	-- Climb the truss
+	local truss = Instance.new("TrussPart")
+	truss.Name = "Climb"
+	truss.Anchored = true
+	truss.Size = Vector3.new(2, 12, 2)
+	truss.CFrame = CFrame.new(198, 34, -222)
+	truss.Color = Color3.fromRGB(200, 200, 210)
+	truss.Parent = course
+	platform(Vector3.new(198, 40.5, -228), Vector3.new(6, 1, 6))
+	-- Gauntlet: kill walls rise and sink across the walkway
+	platform(Vector3.new(180, 40.5, -230), Vector3.new(20, 1, 6), Color3.fromRGB(150, 80, 200))
+	for i, x in { 185, 178 } do
+		local wall = kill(Vector3.new(x, 41, -230), Vector3.new(1, 5, 6), 2, { CanCollide = false })
+		wall:SetAttribute("PulseAmp", 3.5)
+		wall:SetAttribute("PulseSpeed", 2.2)
+		wall:SetAttribute("PulsePhase", i * 1.6)
+	end
+	-- Zig-zag hops
+	platform(Vector3.new(166, 41, -230), Vector3.new(3, 1, 3))
+	platform(Vector3.new(160, 42, -224), Vector3.new(3, 1, 3))
+	platform(Vector3.new(154, 43, -230), Vector3.new(3, 1, 3))
+	platform(Vector3.new(148, 44, -236), Vector3.new(3, 1, 3))
+	vanishing(Vector3.new(141, 45, -236), Vector3.new(3, 1, 3), 0.5)
+	-- Finish
+	platform(Vector3.new(132, 46, -236), Vector3.new(10, 1, 10), Color3.fromRGB(255, 220, 120))
+	prize(2, Vector3.new(132, 46.7, -236), Color3.fromRGB(120, 210, 255))
+
 	return course
 end
 
@@ -523,8 +611,9 @@ function World.build()
 		})
 	end
 	road("MainStreet", Vector3.new(460, 0.2, 24), Vector3.new(15, 0.1, 0))
-	road("BerryLane", Vector3.new(20, 0.2, 178), Vector3.new(0, 0.1, 101))
-	road("MapleCourt", Vector3.new(400, 0.2, 20), Vector3.new(0, 0.1, 200))
+	road("BerryLane", Vector3.new(20, 0.2, 318), Vector3.new(0, 0.1, 171))
+	road("MapleCourt", Vector3.new(530, 0.2, 20), Vector3.new(0, 0.1, 200))
+	road("WillowWay", Vector3.new(530, 0.2, 20), Vector3.new(0, 0.1, 340))
 	-- Center-line dashes on Main Street
 	for x = -200, 230, 16 do
 		part(root, {
@@ -616,6 +705,70 @@ function World.build()
 			end
 			return list
 		end)(),
+		decorate = function(model, at)
+			local neonColors = {
+				Color3.fromRGB(255, 80, 200), Color3.fromRGB(80, 220, 255), Color3.fromRGB(255, 230, 80),
+				Color3.fromRGB(120, 255, 140), Color3.fromRGB(190, 110, 255),
+			}
+			-- Glowing trim and corner tubes on the front
+			part(model, {
+				Name = "NeonTrim", Size = Vector3.new(40, 0.6, 0.4), CFrame = at(0, 16.6, -15.4),
+				Color = neonColors[1], Material = Enum.Material.Neon,
+			})
+			for _, side in { -1, 1 } do
+				local tube = part(model, {
+					Name = "NeonTube", Size = Vector3.new(0.6, 15, 0.6), CFrame = at(side * 19.8, 8.5, -15.4),
+					Color = neonColors[2], Material = Enum.Material.Neon,
+				})
+				local light = Instance.new("PointLight")
+				light.Color = neonColors[2]
+				light.Range = 16
+				light.Parent = tube
+			end
+			-- Marquee bulbs above the door that chase colors
+			local bulbs = {}
+			for i = 0, 13 do
+				table.insert(bulbs, part(model, {
+					Name = "Bulb", Shape = Enum.PartType.Ball, Size = Vector3.new(1, 1, 1),
+					CFrame = at(-16.25 + i * 2.5, 14.2, -15.7), Color = neonColors[1], Material = Enum.Material.Neon,
+				}))
+			end
+			-- Light-up dance floor tiles inside
+			local tiles = {}
+			for gx = -2, 2 do
+				for gz = -2, 0 do
+					table.insert(tiles, part(model, {
+						Name = "FloorTile", Size = Vector3.new(5.6, 0.1, 5.6), CFrame = at(gx * 6, 1.05, gz * 6 - 1),
+						Color = neonColors[(gx + gz) % #neonColors + 1], Material = Enum.Material.Neon,
+						Transparency = 0.35, CanCollide = false,
+					}))
+				end
+			end
+			-- Cabinets along the side walls, facing the middle; each opens the game picker
+			for _, side in { -1, 1 } do
+				for _, z in { -8, -2, 4 } do
+					local cabinet = Builders.furniture("arcade")
+					cabinet:PivotTo(at(side * 17, 4, z) * CFrame.Angles(0, side * math.pi / 2, 0))
+					prompt(cabinet.PrimaryPart, "Play Arcade", "Arcade Cabinet", { Action = "Arcade" })
+					cabinet.Parent = model
+				end
+			end
+			task.spawn(function()
+				local step = 0
+				while true do
+					step += 1
+					for i, bulb in bulbs do
+						bulb.Color = neonColors[(i + step) % #neonColors + 1]
+					end
+					if step % 4 == 0 then
+						for i, tile in tiles do
+							tile.Color = neonColors[(i + step // 4) % #neonColors + 1]
+						end
+					end
+					task.wait(0.25)
+				end
+			end)
+		end,
 	})
 	building({
 		id = "school", label = "Berryvale School", position = Vector3.new(175, 0, north), facing = 1,
@@ -678,14 +831,25 @@ function World.build()
 			lampPost(Vector3.new(x + 20, 0, 15))
 		end
 	end
-	for z = 30, 180, 30 do
-		lampPost(Vector3.new(-13, 0, z))
+	for z = 30, 330, 30 do
+		if math.abs(z - 200) > 12 and math.abs(z - 340) > 12 then
+			lampPost(Vector3.new(-13, 0, z))
+		end
+	end
+	for _, street in { 200, 340 } do
+		for x = -240, 240, 60 do
+			if x ~= 0 then -- skip Berry Lane
+				lampPost(Vector3.new(x, 0, street - 11))
+			end
+		end
 	end
 	local treeSpots = {
 		Vector3.new(-30, 0, -70), Vector3.new(30, 0, -70), Vector3.new(-30, 0, -30), Vector3.new(30, 0, -30),
 		Vector3.new(-212, 0, -40), Vector3.new(220, 0, -40), Vector3.new(-212, 0, 60), Vector3.new(220, 0, 50),
 		Vector3.new(-25, 0, 100), Vector3.new(25, 0, 100), Vector3.new(-40, 0, 130), Vector3.new(40, 0, 130),
-		Vector3.new(-210, 0, 200), Vector3.new(210, 0, 200), Vector3.new(-110, 0, 110), Vector3.new(110, 0, 110),
+		Vector3.new(-285, 0, 200), Vector3.new(285, 0, 200), Vector3.new(-110, 0, 110), Vector3.new(110, 0, 110),
+		Vector3.new(-285, 0, 340), Vector3.new(285, 0, 340), Vector3.new(-285, 0, 270), Vector3.new(285, 0, 270),
+		Vector3.new(-40, 0, 420), Vector3.new(40, 0, 420), Vector3.new(-150, 0, 425), Vector3.new(150, 0, 425),
 		Vector3.new(-150, 0, -110), Vector3.new(-50, 0, -110), Vector3.new(50, 0, -110), Vector3.new(150, 0, -110),
 	}
 	for _, spot in treeSpots do
@@ -697,16 +861,27 @@ function World.build()
 	World.teleports.obby = CFrame.new(125, 4, -66) -- faces -Z, along the course
 	World.setLeaderboard = buildLeaderboard()
 
-	-- Neighborhood on Maple Court
+	-- Two neighborhoods, each a street with 6 houses on each side (24 total).
+	-- Houses on the near side face +Z toward the street; far side faces -Z.
+	local neighborhoods = {
+		{ id = "maplecourt", name = "Maple Court", street = 200, color = Color3.fromRGB(200, 100, 40) },
+		{ id = "willowway", name = "Willow Way", street = 340, color = Color3.fromRGB(60, 140, 80) },
+	}
 	local index = 0
-	for _, x in { -150, -75, 75, 150 } do
-		index += 1
-		buildPlot(index, Vector3.new(x, 0, 160), 1)
-		index += 1
-		buildPlot(index, Vector3.new(x, 0, 240), -1)
+	for _, hood in neighborhoods do
+		for _, x in { -225, -150, -75, 75, 150, 225 } do
+			index += 1
+			buildPlot(index, Vector3.new(x, 0, hood.street - 40), 1).neighborhood = hood.name
+			index += 1
+			buildPlot(index, Vector3.new(x, 0, hood.street + 40), -1).neighborhood = hood.name
+		end
+		part(root, {
+			Name = "SignPost", Size = Vector3.new(0.5, 6, 0.5), CFrame = CFrame.new(-20, 3, hood.street - 12),
+			Color = Color3.fromRGB(120, 85, 55), Material = Enum.Material.Wood,
+		})
+		sign(root, CFrame.new(-20, 6.5, hood.street - 12.3), Vector3.new(16, 3, 0.4), hood.name, hood.color, Color3.new(1, 1, 1))
+		World.teleports[hood.id] = CFrame.new(0, 3, hood.street)
 	end
-	sign(root, CFrame.new(-20, 6, 188), Vector3.new(16, 3, 0.4),
-		"Maple Court", Color3.fromRGB(60, 140, 80), Color3.new(1, 1, 1))
 end
 
 -- World CFrame for a furniture item at house-local (x, z) with r quarter turns.

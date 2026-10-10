@@ -47,9 +47,9 @@ end
 
 -- Picks a tier by the box's weights (skipping tiers the pool lacks), then a
 -- random item of that tier.
-local function roll(boxKind, pool)
+local function roll(boxKind, pool, lucky)
 	local byTier = pools[pool]
-	local chances = Config.boxChances(boxKind, pool)
+	local chances = Config.boxChances(boxKind, pool, lucky)
 	local r = math.random()
 	local tier
 	for _, name in Config.TierOrder do
@@ -87,8 +87,17 @@ local function onBuyBox(player, storeId, boxKind)
 		PlayerData.notify(player, "You need " .. (price - data.bucks) .. " more " .. Config.CURRENCY .. ".", "error")
 		return
 	end
+	Shops.grantBox(player, storeId, boxKind)
+end
 
-	local rewardId, tier = roll(boxKind, shop.pool)
+-- Rolls a box and gives the result. Used by shop purchases and Robux products.
+-- Assumes the caller already checked there's room for a buddy.
+function Shops.grantBox(player, storeId, boxKind)
+	local data = PlayerData.get(player)
+	local shop = Config.ShopBoxes[storeId]
+	local price = shop.prices[boxKind]
+	local lucky = player:GetAttribute("Pass_lucky") == true
+	local rewardId, tier = roll(boxKind, shop.pool, lucky)
 	local refund = 0
 	if shop.pool == "pet" then
 		Pets.grant(player, rewardId)
