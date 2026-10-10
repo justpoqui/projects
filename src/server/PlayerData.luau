@@ -31,14 +31,43 @@ local function template()
 		energy = Config.MAX_STAT,
 		happiness = Config.MAX_STAT,
 		skills = { smarts = 0, fitness = 0 },
-		inventory = { cereal = 2 },
+		inventory = { cereal = 2, bed = 1 }, -- [itemId] = count (new players get a bed)
 		furniture = {}, -- list of { uid, id, x, z, r }
 		job = nil,
 		jobLevel = 1,
 		shifts = 0,
-		buddy = nil,
+		pets = {}, -- list of { uid, id, name, hunger }
+		equippedPet = nil, -- pet uid
+		outfit = {}, -- [slot] = clothing itemId
+		house = {
+			level = 1,
+			style = { wall = Config.DefaultStyle.wall, floor = Config.DefaultStyle.floor, roof = Config.DefaultStyle.roof },
+			owned = {}, -- ["wall:pink"] = true
+		},
+		likes = 0, -- likes this player's house has received
+		likesGiven = { day = 0, ids = {} }, -- [tostring(userId)] = true, reset daily
+		daily = { day = 0, streak = 0 },
+		quests = { day = 0, list = {} }, -- list of { id, progress, claimed }
+		obbyLast = 0, -- os.time() of the last obby prize
 		nextUid = 1,
 	}
+end
+
+-- Old saves stored buddies as shop items; turn them into pets.
+local function migrate(data)
+	for _, petId in { "puppy", "kitten", "bunny", "robot", "dragon" } do
+		local count = data.inventory[petId]
+		if count and Config.Pets[petId] and not Config.Items[petId] then
+			data.inventory[petId] = nil
+			local uid = data.nextUid
+			data.nextUid += 1
+			table.insert(data.pets, { uid = uid, id = petId, name = Config.Pets[petId].name, hunger = Config.PET_MAX_HUNGER })
+			if data.buddy == petId then
+				data.equippedPet = uid
+			end
+		end
+	end
+	data.buddy = nil
 end
 
 -- Fill in any keys missing from an older saved profile.
@@ -54,6 +83,12 @@ local function reconcile(data)
 			data.skills[key] = value
 		end
 	end
+	for key, value in base.house do
+		if data.house[key] == nil then
+			data.house[key] = value
+		end
+	end
+	migrate(data)
 	return data
 end
 

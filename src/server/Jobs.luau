@@ -6,6 +6,8 @@ local Remotes = require(Shared.Remotes)
 
 local PlayerData = require(script.Parent.PlayerData)
 local Cooldowns = require(script.Parent.Cooldowns)
+local Pets = require(script.Parent.Pets)
+local Quests = require(script.Parent.Quests)
 
 local Jobs = {}
 
@@ -61,7 +63,8 @@ function Jobs.work(player, jobId)
 		PlayerData.notify(player, "You don't work here. Check the Job Board to apply!", "error")
 		return
 	end
-	if data.energy < job.energyCost then
+	local energyCost = job.energyCost * (1 - Pets.buff(player, "energySaver"))
+	if data.energy < energyCost then
 		PlayerData.notify(player, "You're too tired to work. Eat something or take a nap!", "error")
 		return
 	end
@@ -78,10 +81,12 @@ function Jobs.work(player, jobId)
 	elseif data.happiness < 25 then
 		pay = math.floor(pay * 0.75)
 	end
+	pay = math.floor(pay * (1 + Pets.buff(player, "workPay")))
 	PlayerData.addBucks(player, pay)
-	PlayerData.addStat(data, "energy", -job.energyCost)
+	PlayerData.addStat(data, "energy", -energyCost)
 	PlayerData.addStat(data, "hunger", -5)
 	data.shifts += 1
+	Quests.progress(player, "work")
 
 	local message = ("Shift complete! +%d %s"):format(pay, Config.CURRENCY)
 	if data.jobLevel < Config.MAX_JOB_LEVEL and data.shifts >= Config.SHIFTS_PER_PROMOTION then

@@ -1,17 +1,19 @@
 -- Berry Catch: slide the bowl to catch falling berries. Golden berries are
--- worth 3, rotten ones cost 2. The server pays out based on the score.
+-- worth 3, rotten ones cost 2.
 
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
-local Remotes = require(Shared.Remotes)
 
 local UI = require(script.Parent.UI)
+local Arcade = require(script.Parent.Arcade)
 
 local Theme = UI.Theme
-local BerryCatch = {}
+local BerryCatch = {
+	instructions = "Catch purple & gold berries, dodge the brown rotten ones! (mouse, finger, or A/D)",
+}
 
 local BERRY_TYPES = {
 	{ weight = 75, points = 1, color = Color3.fromRGB(120, 60, 200) },
@@ -34,27 +36,15 @@ local function pickBerry()
 	return BERRY_TYPES[1]
 end
 
-local running = false
-
-local function play(content, statusLabel)
-	local ok, err = Remotes.get("ArcadeStart"):InvokeServer()
-	if not ok then
-		statusLabel.Text = err or "Can't start right now."
-		return
-	end
-	running = true
-
-	local field = UI.new("Frame", {
-		Name = "Field", Size = UDim2.new(1, 0, 1, -40), Position = UDim2.fromOffset(0, 40),
-		BackgroundColor3 = Color3.fromRGB(200, 235, 255), ClipsDescendants = true, Parent = content,
-	}, { UI.corner(12) })
+function BerryCatch.play(field, status, finish)
+	local duration = Config.ARCADE_DURATION
 	local bowl = UI.new("Frame", {
 		Name = "Bowl", AnchorPoint = Vector2.new(0.5, 1), Size = UDim2.fromOffset(80, 24),
 		Position = UDim2.new(0.5, 0, 1, -6), BackgroundColor3 = Theme.Pink, Parent = field,
 	}, { UI.corner(12) })
 
 	local score = 0
-	local timeLeft = Config.ARCADE_DURATION
+	local timeLeft = duration
 	local spawnTimer = 0
 	local berries = {}
 	local pointerX = nil
@@ -64,15 +54,13 @@ local function play(content, statusLabel)
 			pointerX = input.Position.X
 		end
 	end)
-	local keyDir = 0
 
 	local stepConn
 	stepConn = RunService.RenderStepped:Connect(function(dt)
-		if not field.Parent then
+		if not Arcade.isRunning(field) then
 			-- Window closed mid-game: forfeit.
 			stepConn:Disconnect()
 			inputConn:Disconnect()
-			running = false
 			return
 		end
 		timeLeft -= dt
@@ -80,7 +68,7 @@ local function play(content, statusLabel)
 		local height = field.AbsoluteSize.Y
 
 		-- Move the bowl (pointer, or arrow / A-D keys)
-		keyDir = 0
+		local keyDir = 0
 		if UserInputService:IsKeyDown(Enum.KeyCode.Left) or UserInputService:IsKeyDown(Enum.KeyCode.A) then
 			keyDir -= 1
 		end
@@ -100,16 +88,16 @@ local function play(content, statusLabel)
 		-- Spawn berries, faster as time runs out
 		spawnTimer -= dt
 		if spawnTimer <= 0 and timeLeft > 0 then
-			spawnTimer = 0.45 + 0.35 * (timeLeft / Config.ARCADE_DURATION)
+			spawnTimer = 0.45 + 0.35 * (timeLeft / duration)
 			local kind = pickBerry()
+			local x = math.random(20, math.max(21, width - 20))
 			local berry = UI.new("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(26, 26),
-				Position = UDim2.fromOffset(math.random(20, math.max(21, width - 20)), -20),
-				BackgroundColor3 = kind.color, Parent = field,
+				Position = UDim2.fromOffset(x, -20), BackgroundColor3 = kind.color, Parent = field,
 			}, { UI.corner(13) })
 			table.insert(berries, {
-				frame = berry, kind = kind, x = berry.Position.X.Offset, y = -20,
-				speed = 160 + math.random() * 120 + (Config.ARCADE_DURATION - timeLeft) * 6,
+				frame = berry, kind = kind, x = x, y = -20,
+				speed = 160 + math.random() * 120 + (duration - timeLeft) * 6,
 			})
 		end
 
@@ -129,46 +117,17 @@ local function play(content, statusLabel)
 			end
 		end
 
-		statusLabel.Text = ("Score: %d   Time: %d"):format(score, math.max(0, math.ceil(timeLeft)))
+		status.Text = ("Score: %d   Time: %d"):format(score, math.max(0, math.ceil(timeLeft)))
 
 		if timeLeft <= 0 then
 			stepConn:Disconnect()
 			inputConn:Disconnect()
-			running = false
-			field:Destroy()
-			Remotes.get("ArcadeSubmit"):FireServer(score)
-			statusLabel.Text = ("Final score: %d! Press Play to go again."):format(score)
+			field:ClearAllChildren()
+			finish(score)
 		end
 	end)
 end
 
-function BerryCatch.open()
-	local _, content = UI.window("Berry Catch", Vector2.new(560, 520))
-	-- The arcade doesn't need scrolling; disable it so drags move the bowl.
-	content.ScrollingEnabled = false
-	content.AutomaticCanvasSize = Enum.AutomaticSize.None
-	local layout = content:FindFirstChildOfClass("UIListLayout")
-	if layout then
-		layout:Destroy()
-	end
-
-	local status = UI.label({
-		Text = "Catch purple & gold berries, dodge the rotten ones!", Font = Theme.BodyFont,
-		Size = UDim2.new(1, -110, 0, 32), TextXAlignment = Enum.TextXAlignment.Left, Parent = content,
-	})
-	UI.button({
-		Text = "Play", Color = Theme.Good, Size = UDim2.fromOffset(100, 32), AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 0), Parent = content,
-		OnClick = function()
-			if not running then
-				local old = content:FindFirstChild("Field")
-				if old then
-					old:Destroy()
-				end
-				play(content, status)
-			end
-		end,
-	})
-end
+Arcade.register("berrycatch", BerryCatch)
 
 return BerryCatch

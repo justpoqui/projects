@@ -12,19 +12,27 @@ local World = require(script.Parent.WorldBuilder)
 local PlayerData = require(script.Parent.PlayerData)
 local Housing = require(script.Parent.Housing)
 local Shops = require(script.Parent.Shops)
-local Buddies = require(script.Parent.Buddies)
+local Pets = require(script.Parent.Pets)
+local Outfit = require(script.Parent.Outfit)
 local Jobs = require(script.Parent.Jobs)
 local Needs = require(script.Parent.Needs)
 local Arcade = require(script.Parent.Arcade)
+local Obby = require(script.Parent.Obby)
+local Quests = require(script.Parent.Quests)
+local Leaderboard = require(script.Parent.Leaderboard)
 
 World.build()
 PlayerData.init()
 Housing.init()
 Shops.init()
-Buddies.init(PlayerData)
+Pets.init()
+Outfit.init()
 Jobs.init()
 Needs.init()
 Arcade.init()
+Obby.init(World.obby)
+Quests.init()
+Leaderboard.init()
 
 local handlers = {
 	Shop = function(player, prompt)
@@ -39,18 +47,21 @@ local handlers = {
 	Train = function(player, prompt)
 		Needs.train(player, prompt:GetAttribute("Target"))
 	end,
-	Arcade = function(player)
-		Arcade.open(player)
+	Arcade = function(player, prompt)
+		Arcade.open(player, prompt:GetAttribute("Target"))
 	end,
 	Furniture = function(player, prompt)
 		if Needs.furnitureActivity(player, prompt:GetAttribute("Target")) then
-			Arcade.open(player)
+			Arcade.open(player, nil)
 		end
 	end,
 	PickUp = function(player, prompt)
 		if prompt:GetAttribute("OwnerId") == player.UserId then
 			Housing.pickUp(player, prompt:GetAttribute("Uid"))
 		end
+	end,
+	Like = function(player, prompt)
+		Housing.like(player, prompt:GetAttribute("OwnerId"))
 	end,
 }
 
@@ -65,6 +76,12 @@ local function onPlayerAdded(player)
 	local data = PlayerData.load(player)
 	if data then
 		Housing.assign(player, data)
+		-- Give the client a moment to load its UI so the daily reward toast shows.
+		task.delay(4, function()
+			if player.Parent and Quests.refresh(player, data) then
+				PlayerData.replicate(player)
+			end
+		end)
 	end
 end
 

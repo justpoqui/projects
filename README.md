@@ -10,22 +10,22 @@ project.
 
 ## What you can do
 
-| Place | What it's for |
+| Place / menu | What it's for |
 | --- | --- |
-| **Your house** (Maple Court) | Every player gets a house. Buy furniture and place it inside. Beds, sofas, TVs and bookshelves have activities (sleep, relax, watch, read). Hold **F** next to furniture to pick it back up. |
-| **Berryvale Grocery** | Buy food to keep your Hunger up. You can also work here as a clerk. |
-| **Cozy Home Furnishings** | Beds, sofas, TVs, lamps, rugs, plants, an arcade cabinet... |
-| **Buddy Barn** | Adopt a buddy (puppy, kitten, bunny, robot, dragon) that follows you around. |
-| **Berry Arcade** | Play *Berry Catch*: catch purple and gold berries, dodge rotten ones. Pays Berrybucks. |
+| **Berry Phone** | Quick-teleport apps for every spot in town, your home, the obby, and visiting friends. |
+| **Your house** (Maple Court) | Every player gets a house. Place furniture inside; beds, sofas, TVs, bookshelves, the arcade cabinet and the throne have activities. Hold **F** to pick furniture up. |
+| **My House menu** | Upgrade from Cottage to Family Home, Big House and Mansion (bigger rooms, more furniture slots), and buy wall, floor and roof styles. |
+| **Shops** | Every shop sells **Berry Boxes**: Berry, Sparkle and Royal boxes that roll a random item by rarity (Common, Uncommon, Rare, Epic, Legendary). The shop window shows the odds and everything inside. Grocery = food, Cozy Home = furniture, **Berry Boutique** = hats, glasses, capes and wings, **Buddy Barn** = buddies (plus buddy food, sold directly). |
+| **Buddies** | Pets that follow you. Each one has a **perk** whose strength depends on its rarity: more job pay, bigger game prizes, slower hunger, less tiring work, slower sadness, or double skill gains. Perks only work while your buddy is out **and fed**. Rename (names are filtered by Roblox) or release buddies for Berrybucks. |
+| **Berry Arcade** | Three games: *Berry Catch*, *Cereal Stacker* and *Memory Match*. |
+| **Berry Dash obby** | Behind the arcade. Red parts send you back to the start; the gold pad pays a prize every 10 minutes. |
 | **School / Gym** | Train **Smarts** and **Fitness**, which better jobs require. |
-| **Factory, Post Office, Science Lab, Town Hall** | Jobs. Apply at the Job Board, then use **Work Shift**. Every 5 shifts gets you a promotion and a raise (5 levels, from "Box Folder" up to "Mayor"). |
+| **Jobs** | Factory, Grocery, Post Office, Science Lab, Town Hall. Apply at a Job Board, then **Work Shift**. Every 5 shifts gets you a promotion and a raise. |
+| **Quests** | A login-streak reward every day plus 3 random daily quests that pay Berrybucks. |
+| **Visit & Like** | Visit neighbors from the phone, and like their house (mailbox or Visit menu, once per house per day). The most-liked houses show on the **Best Houses** board in the Town Square. |
 
 **Needs:** Hunger, Energy and Happiness drain over time. Working and training
-use Energy; eat food and sleep to recover. Happy workers earn a 10% bonus and
-unhappy ones earn less. Starving makes you unhappy fast.
-
-The bottom menu has **Backpack** (eat food, place furniture, walk your buddy),
-**Me** (job, skills, home stats), **Go Home** and **Go to Town**.
+use Energy; eat food and sleep to recover. New players start with a bed.
 
 ## Running it
 
@@ -50,35 +50,41 @@ Access to API Services*. Without it the game still works, but progress resets
 ```
 src/
   shared/      (ReplicatedStorage.Shared)
-    Config.luau      items, prices, jobs, stats tuning: edit this to balance the game
-    Builders.luau    part-built furniture and buddy models
+    Config.luau      items, Berry Box odds/prices, buddies & perks, house levels/styles,
+                     jobs, minigames, quests, phone apps: edit this to balance the game
+    Builders.luau    part-built furniture, buddy and clothing models
     Remotes.luau     the list of RemoteEvents/Functions
   server/      (ServerScriptService.Server)
     Main.server.luau  starts everything; routes ProximityPrompts to systems
     WorldBuilder      builds the town and house plots
     PlayerData        DataStore load/save, leaderstats, replication to client
-    Housing           plot assignment, furniture placement/pickup, teleports
-    Shops             buying and eating/using items
+    Housing           plots, furniture, upgrades, styles, likes, teleports
+    Shops             Berry Box rolls, buddy food, eating and wearing items
+    Pets, Outfit      buddies (perks, hunger, names); worn clothing
     Jobs, Needs       jobs and promotions; needs drain, training, furniture activities
-    Buddies, Arcade   pets that follow you; server-side arcade score checks
+    Arcade, Obby      server-side minigame score checks; obby resets and prize
+    Quests            daily reward and daily quests
+    Leaderboard       Best Houses board (OrderedDataStore)
     Cooldowns         per-player cooldown helper
   client/      (StarterPlayerScripts.Client)
     Main.client.luau  wires up HUD and server-driven windows
-    UI, Hud, Panels   UI toolkit, stat bars and menu, shop/backpack/job/profile windows
+    UI, Hud, Panels   UI toolkit, stat bars and menu, shop/backpack/job/profile/quest windows
+    Phone             the Berry Phone
+    PetsUI, HouseUI   buddies window and box-opening animation; house and visit windows
     Placement         furniture placement preview
-    BerryCatch        the arcade minigame
+    Arcade            game picker + shared game window
+    BerryCatch, Stacker, Memory   the minigames
     State             latest copy of the player's profile
 ```
 
-The server never trusts the client with money: purchases check price, stock
-and that you're standing at the counter; furniture placement is bounds-checked
-against your own house; arcade rounds are timed by the server and scores are
-capped.
+The server never trusts the client with money: Berry Boxes are rolled on the
+server and require you to stand at the counter; furniture placement is
+bounds-checked against your own house; arcade rounds are timed by the server
+and scores are capped.
 
 ## Ideas for next steps
 
-- More minigames (Millsberry had dozens): each just needs a client game plus a
-  server `Start`/`Submit` pair like `Arcade.luau`.
-- Visiting other players' houses works already; a "Visit" list in the HUD would
-  make it easier.
-- Clubs, trading, house color/wallpaper choices, a bank with interest.
+- Clubs/teams, trading, a bank with interest.
+- Day/night cycle (the street lamps already light up).
+- Sounds and music.
+- Accessories for buddies.

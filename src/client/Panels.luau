@@ -15,6 +15,11 @@ local Panels = {}
 local player = Players.LocalPlayer
 local refresh = nil -- re-renders the open window when data changes
 
+local function tierRank(tier)
+	return table.find(Config.TierOrder, tier) or 0
+end
+
+-- Items matching filter, sorted by tier then name.
 local function sortedItems(filter)
 	local list = {}
 	for id, item in Config.Items do
@@ -23,16 +28,20 @@ local function sortedItems(filter)
 		end
 	end
 	table.sort(list, function(a, b)
-		if a.item.price == b.item.price then
+		local ra, rb = tierRank(a.item.tier), tierRank(b.item.tier)
+		if ra == rb then
 			return a.item.name < b.item.name
 		end
-		return a.item.price < b.item.price
+		return ra < rb
 	end)
 	return list
 end
 
 local function describe(item)
 	local parts = {}
+	if item.tier then
+		table.insert(parts, item.tier)
+	end
 	if item.category == "food" then
 		if item.hunger then
 			table.insert(parts, "+" .. item.hunger .. " Hunger")
@@ -45,12 +54,15 @@ local function describe(item)
 		end
 	elseif item.category == "furniture" then
 		local activity = item.activity and Config.Activities[item.activity]
-		table.insert(parts, activity and ("Use it to " .. activity.prompt:lower()) or "Decoration")
-	elseif item.category == "buddy" then
-		table.insert(parts, "A loyal buddy who follows you around")
+		table.insert(parts, activity and activity.prompt or "Decoration")
+	elseif item.category == "clothing" then
+		table.insert(parts, item.slot:sub(1, 1):upper() .. item.slot:sub(2))
+	elseif item.category == "petfood" then
+		table.insert(parts, "+" .. item.petHunger .. " buddy hunger")
 	end
-	return table.concat(parts, "  ")
+	return table.concat(parts, "  |  ")
 end
+Panels.describe = describe
 
 local function open(title, size, render)
 	local _, content = UI.window(title, size, function()
@@ -77,36 +89,97 @@ end)
 
 -- Shop ------------------------------------------------------------------
 
+-- A row of colored "Tier 12%" chips
+local function oddsChips(parent, chances)
+	local holder = UI.new("Frame", {
+		Size = UDim2.new(1, -150, 0, 44), Position = UDim2.fromOffset(12, 36), BackgroundTransparency = 1, Parent = parent,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder,
+			Wraps = true, -- spill onto a second line on narrow screens
+		}),
+	})
+	for i, tier in Config.TierOrder do
+		local chance = chances[tier]
+		if chance then
+			local pct = chance * 100
+			UI.new("TextLabel", {
+				Text = ("%s %s%%"):format(tier, pct < 1 and ("%.1f"):format(pct) or tostring(math.floor(pct + 0.5))),
+				Font = Theme.Font, TextSize = 12, TextColor3 = Color3.new(1, 1, 1), LayoutOrder = i,
+				BackgroundColor3 = Config.Tiers[tier].color, AutomaticSize = Enum.AutomaticSize.X,
+				Size = UDim2.fromOffset(0, 18), Parent = holder,
+			}, { UI.corner(6), UI.padding(2) })
+		end
+	end
+end
+
 function Panels.shop(storeId)
 	local store = Config.Stores[storeId]
-	if not store then
+	local shop = Config.ShopBoxes[storeId]
+	if not store or not shop then
 		return
 	end
-	open(store.name, Vector2.new(540, 460), function(content, data)
+	open(store.name, Vector2.new(560, 520), function(content, data)
+		local order = 0
+		local function nextOrder()
+			order += 1
+			return order
+		end
 		UI.label({
 			Text = "You have " .. data.bucks .. " " .. Config.CURRENCY, Font = Theme.BodyFont,
-			TextColor3 = Theme.Muted, Size = UDim2.new(1, 0, 0, 22), LayoutOrder = 0, Parent = content,
+			TextColor3 = Theme.Muted, Size = UDim2.new(1, 0, 0, 22), LayoutOrder = nextOrder(), Parent = content,
 		})
-		local items = sortedItems(function(_, item)
-			return item.store == storeId
-		end)
-		for i, entry in items do
-			local item = entry.item
-			local owned = data.inventory[entry.id] or 0
-			local subtitle = describe(item)
-			if owned > 0 then
-				subtitle ..= "  (own " .. owned .. ")"
-			end
-			local adopted = item.category == "buddy" and owned > 0
-			local affordable = data.bucks >= item.price
-			UI.row(content, i, item.name, subtitle,
-				adopted and "Adopted" or ("Buy " .. item.price),
-				(adopted or not affordable) and Theme.Muted or Theme.Good,
-				function()
-					if not adopted then
+		UI.heading(content, nextOrder(), "Berry Boxes - what will you get?")
+		for _, kind in Config.BoxKindOrder do
+			local box = Config.BoxKinds[kind]
+			local price = shop.prices[kind]
+			local card = UI.new("Frame", {
+				Size = UDim2.new(1, -4, 0, 86), BackgroundColor3 = Theme.PanelDark, LayoutOrder = nextOrder(), Parent = content,
+			}, { UI.corner(12), UI.stroke(box.color, 2) })
+			UI.label({
+				Text = shop.label .. " " .. box.name, Size = UDim2.new(1, -150, 0, 26), Position = UDim2.fromOffset(12, 8),
+				TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = box.color, Parent = card,
+			})
+			oddsChips(card, Config.boxChances(kind, shop.pool))
+			UI.button({
+				Text = "Open " .. price, Color = data.bucks >= price and Theme.Good or Theme.Muted,
+				Size = UDim2.fromOffset(120, 44), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
+				Parent = card, OnClick = function()
+					Remotes.get("BuyBox"):FireServer(storeId, kind)
+				end,
+			})
+		end
+
+		if storeId == "buddies" then
+			UI.heading(content, nextOrder(), "Buddy Food")
+			for _, entry in sortedItems(function(_, item)
+				return item.category == "petfood"
+			end) do
+				local owned = data.inventory[entry.id] or 0
+				UI.row(content, nextOrder(), entry.item.name,
+					describe(entry.item) .. (owned > 0 and ("  (own " .. owned .. ")") or ""),
+					"Buy " .. entry.item.price, data.bucks >= entry.item.price and Theme.Good or Theme.Muted, function()
 						Remotes.get("BuyItem"):FireServer(entry.id)
-					end
-				end)
+					end)
+			end
+		end
+
+		UI.heading(content, nextOrder(), "What's inside")
+		local byTier = Config.poolByTier(shop.pool)
+		for _, tier in Config.TierOrder do
+			local ids = byTier[tier]
+			if ids then
+				local names = {}
+				for _, id in ids do
+					table.insert(names, Config.nameOf(id))
+				end
+				UI.label({
+					Text = tier .. ": " .. table.concat(names, ", "), Font = Theme.BodyFont, TextScaled = false,
+					TextSize = 15, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left,
+					TextColor3 = Config.Tiers[tier].color, AutomaticSize = Enum.AutomaticSize.Y,
+					Size = UDim2.new(1, 0, 0, 18), LayoutOrder = nextOrder(), Parent = content,
+				})
+			end
 		end
 	end)
 end
@@ -114,9 +187,9 @@ end
 -- Backpack ----------------------------------------------------------------
 
 function Panels.backpack(actions)
-	open("Backpack", Vector2.new(540, 480), function(content, data)
+	open("Backpack", Vector2.new(560, 500), function(content, data)
 		local order = 0
-		local function section(title, category)
+		local function section(title, category, makeRow)
 			local items = sortedItems(function(id, item)
 				return item.category == category and (data.inventory[id] or 0) > 0
 			end)
@@ -125,43 +198,55 @@ function Panels.backpack(actions)
 			if #items == 0 then
 				order += 1
 				UI.label({
-					Text = "Nothing here yet. Visit the shops in town!", Font = Theme.BodyFont,
+					Text = "Nothing here yet. Open Berry Boxes at the shops in town!", Font = Theme.BodyFont,
 					TextColor3 = Theme.Muted, Size = UDim2.new(1, 0, 0, 20), LayoutOrder = order, Parent = content,
 				})
 			end
 			for _, entry in items do
 				order += 1
-				local item = entry.item
 				local count = data.inventory[entry.id]
-				local label = item.name .. (count > 1 and (" x" .. count) or "")
-				if category == "food" then
-					UI.row(content, order, label, describe(item), "Eat", Theme.Good, function()
-						Remotes.get("UseItem"):FireServer(entry.id)
-					end)
-				elseif category == "furniture" then
-					UI.row(content, order, label, describe(item), "Place", Theme.Accent, function()
-						UI.closeWindow()
-						actions.place(entry.id)
-					end)
-				else
-					local walking = data.buddy == entry.id
-					UI.row(content, order, label, walking and "Following you" or describe(item),
-						walking and "Put Away" or "Walk", walking and Theme.Pink or Theme.Good, function()
-							if walking then
-								Remotes.get("UnequipBuddy"):FireServer()
-							else
-								Remotes.get("UseItem"):FireServer(entry.id)
-							end
-						end)
+				local label = entry.item.name .. (count > 1 and (" x" .. count) or "")
+				local row = makeRow(entry, label)
+				if row and entry.item.tier then
+					-- Tier color stripe on the left edge
+					UI.new("Frame", {
+						Size = UDim2.new(0, 6, 1, -16), Position = UDim2.fromOffset(3, 8),
+						BackgroundColor3 = Config.Tiers[entry.item.tier].color, Parent = row,
+					}, { UI.corner(3) })
 				end
 			end
 		end
-		section("Food", "food")
-		section("Furniture", "furniture")
-		section("Buddies", "buddy")
+
+		section("Food", "food", function(entry, label)
+			return UI.row(content, order, label, describe(entry.item), "Eat", Theme.Good, function()
+				Remotes.get("UseItem"):FireServer(entry.id)
+			end)
+		end)
+		section("Furniture", "furniture", function(entry, label)
+			return UI.row(content, order, label, describe(entry.item), "Place", Theme.Accent, function()
+				UI.closeWindow()
+				actions.place(entry.id)
+			end)
+		end)
+		section("Clothing", "clothing", function(entry, label)
+			local wearing = data.outfit[entry.item.slot] == entry.id
+			return UI.row(content, order, label, wearing and "Wearing now" or describe(entry.item),
+				wearing and "Take Off" or "Wear", wearing and Theme.Pink or Theme.Good, function()
+					if wearing then
+						Remotes.get("TakeOff"):FireServer(entry.item.slot)
+					else
+						Remotes.get("UseItem"):FireServer(entry.id)
+					end
+				end)
+		end)
+		section("Buddy Food", "petfood", function(entry, label)
+			return UI.row(content, order, label, describe(entry.item), "Feed", Color3.fromRGB(240, 150, 60), function()
+				Remotes.get("FeedPet"):FireServer(entry.id)
+			end)
+		end)
 		order += 1
 		UI.label({
-			Text = "Tip: placed furniture can be picked back up by holding F next to it.", Font = Theme.BodyFont,
+			Text = "Tip: hold F next to placed furniture to pick it back up.", Font = Theme.BodyFont,
 			TextColor3 = Theme.Muted, Size = UDim2.new(1, 0, 0, 18), LayoutOrder = order, Parent = content,
 		})
 	end)
@@ -244,8 +329,50 @@ function Panels.profile()
 
 		order += 1
 		UI.heading(content, order, "Home")
-		line(#data.furniture .. " / " .. Config.MAX_FURNITURE .. " furniture placed",
-			data.buddy and ("Buddy: " .. Config.Items[data.buddy].name) or "No buddy out")
+		local level = Config.HouseLevels[data.house.level]
+		line(level.name .. " (level " .. data.house.level .. ")",
+			#data.furniture .. " / " .. level.maxFurniture .. " furniture placed  |  " .. data.likes .. " likes")
+		local pet
+		for _, entry in data.pets do
+			if entry.uid == data.equippedPet then
+				pet = entry
+			end
+		end
+		line(pet and ("Buddy: " .. pet.name) or "No buddy out",
+			pet and Config.describeBuff(pet.id) or (#data.pets .. " buddies in your collection"))
+	end)
+end
+
+-- Quests ------------------------------------------------------------------
+
+function Panels.quests()
+	open("Daily Quests", Vector2.new(520, 440), function(content, data)
+		local streak = data.daily.streak
+		UI.label({
+			Text = ("Login streak: %d day%s. Come back tomorrow for a bigger reward!"):format(streak, streak == 1 and "" or "s"),
+			Font = Theme.BodyFont, TextColor3 = Theme.Muted, Size = UDim2.new(1, 0, 0, 20), LayoutOrder = 0, Parent = content,
+		})
+		local byId = {}
+		for _, quest in Config.Quests do
+			byId[quest.id] = quest
+		end
+		for i, entry in data.quests.list do
+			local quest = byId[entry.id]
+			if quest then
+				local done = entry.progress >= quest.goal
+				local buttonText = entry.claimed and "Claimed" or done and "Claim" or (entry.progress .. "/" .. quest.goal)
+				local color = entry.claimed and Theme.Muted or done and Theme.Good or Theme.AccentLight
+				UI.row(content, i, quest.text, ("Reward: %d %s"):format(quest.reward, Config.CURRENCY), buttonText, color, function()
+					if done and not entry.claimed then
+						Remotes.get("ClaimQuest"):FireServer(i)
+					end
+				end)
+			end
+		end
+		UI.label({
+			Text = "New quests every day (UTC midnight).", Font = Theme.BodyFont, TextColor3 = Theme.Muted,
+			Size = UDim2.new(1, 0, 0, 18), LayoutOrder = 100, Parent = content,
+		})
 	end)
 end
 

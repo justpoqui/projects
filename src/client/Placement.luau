@@ -17,8 +17,8 @@ local UI = require(script.Parent.UI)
 local Theme = UI.Theme
 local player = Players.LocalPlayer
 
--- Must match WorldBuilder on the server
-local INNER_X, INNER_Z, FLOOR_Y = 19, 14, 1
+-- Top of the house floor above the ground (matches WorldBuilder)
+local FLOOR_Y = 1
 
 local Placement = {}
 
@@ -85,7 +85,7 @@ local function update()
 	if session.r % 2 == 1 then
 		sx, sz = sz, sx
 	end
-	local maxX, maxZ = INNER_X - sx / 2, INNER_Z - sz / 2
+	local maxX, maxZ = session.innerX - sx / 2, session.innerZ - sz / 2
 
 	session.valid = hit ~= nil and maxX >= 0 and maxZ >= 0
 	if hit then
@@ -106,7 +106,11 @@ function Placement.start(itemId)
 		UI.notify("You need a house to place furniture.", "error")
 		return
 	end
-	local floor = plot:FindFirstChild("Floor")
+	local house = plot:FindFirstChild("House")
+	local floor = house and house:FindFirstChild("Floor")
+	if not floor then
+		return
+	end
 	local houseCF = floor.CFrame * CFrame.new(0, -0.5, 0)
 
 	-- Bring the player home if they're not already there.
@@ -131,7 +135,7 @@ function Placement.start(itemId)
 	ghost.Parent = Workspace
 
 	local bar = UI.new("Frame", {
-		Name = "PlacementBar", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -76),
+		Name = "PlacementBar", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -108),
 		Size = UDim2.new(0.9, 0, 0, 92), BackgroundColor3 = Theme.Panel, Parent = UI.Screen,
 	}, {
 		UI.corner(14), UI.stroke(Theme.Accent, 2), UI.padding(8),
@@ -155,6 +159,7 @@ function Placement.start(itemId)
 
 	local session = {
 		itemId = itemId, floor = floor, houseCF = houseCF, ghost = ghost, bar = bar,
+		innerX = plot:GetAttribute("InnerX") or 19, innerZ = plot:GetAttribute("InnerZ") or 14,
 		x = 0, z = 0, r = 0, valid = false, touchPoint = nil, connections = {},
 	}
 	active = session

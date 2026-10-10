@@ -8,21 +8,32 @@ local EVENTS = {
 	"DataUpdated", -- server -> client: full player profile
 	"Notify", -- server -> client: toast message
 	"OpenShop", -- server -> client: storeId
-	"OpenArcade", -- server -> client: open the minigame
+	"OpenArcade", -- server -> client: gameId or nil (show the game picker)
 	"OpenJobBoard", -- server -> client: buildingId
-	"BuyItem", -- client -> server: itemId
-	"UseItem", -- client -> server: itemId (eat food / equip buddy)
-	"UnequipBuddy", -- client -> server
+	"BoxOpened", -- server -> client: storeId, boxKind, rewardId, tier, refund
+	"BuyBox", -- client -> server: storeId, boxKind
+	"BuyItem", -- client -> server: itemId (buddy food, the only direct buys)
+	"UseItem", -- client -> server: itemId (eat food / wear clothing)
+	"TakeOff", -- client -> server: clothing slot
 	"PlaceFurniture", -- client -> server: itemId, x, z, rotation
 	"PickUpFurniture", -- client -> server: uid
-	"ApplyJob", -- client -> server: jobId
+	"ApplyJob", -- client -> server: jobId or "quit"
 	"ArcadeSubmit", -- client -> server: score
-	"Teleport", -- client -> server: "home" | "town"
+	"Teleport", -- client -> server: "home" | "town" | "visit" (userId) | "place" (spot id)
+	"EquipPet", -- client -> server: pet uid
+	"UnequipPet", -- client -> server
+	"FeedPet", -- client -> server: food itemId
+	"RenamePet", -- client -> server: pet uid, name
+	"ReleasePet", -- client -> server: pet uid
+	"UpgradeHouse", -- client -> server
+	"SetHouseStyle", -- client -> server: part ("wall"|"floor"|"roof"), styleId
+	"LikeHouse", -- client -> server: owner userId
+	"ClaimQuest", -- client -> server: quest index
 }
 
 local FUNCTIONS = {
 	"GetData", -- client -> server: returns profile
-	"ArcadeStart", -- client -> server: returns ok
+	"ArcadeStart", -- client -> server: gameId; returns ok, message
 }
 
 local Remotes = {}

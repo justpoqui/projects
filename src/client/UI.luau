@@ -118,6 +118,13 @@ function UI.windowOpen()
 	return currentWindow ~= nil
 end
 
+-- Lets a custom-built frame act as the one open window.
+function UI.setWindow(frame, onClose)
+	UI.closeWindow()
+	currentWindow = frame
+	currentClose = onClose
+end
+
 -- Opens a centered window (closing any other). Returns the window frame and
 -- a scrolling content frame.
 function UI.window(title, size, onClose)

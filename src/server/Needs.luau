@@ -6,6 +6,8 @@ local Config = require(Shared.Config)
 
 local PlayerData = require(script.Parent.PlayerData)
 local Cooldowns = require(script.Parent.Cooldowns)
+local Pets = require(script.Parent.Pets)
+local Quests = require(script.Parent.Quests)
 
 local Needs = {}
 
@@ -15,7 +17,8 @@ function Needs.train(player, placeId)
 	if not data or not training then
 		return
 	end
-	if data.energy < training.energyCost then
+	local energyCost = training.energyCost * (1 - Pets.buff(player, "energySaver"))
+	if data.energy < energyCost then
 		PlayerData.notify(player, "You're too tired. Rest up first!", "error")
 		return
 	end
@@ -24,9 +27,14 @@ function Needs.train(player, placeId)
 		PlayerData.notify(player, "Wait " .. remaining .. "s before training again.", "info")
 		return
 	end
-	PlayerData.addStat(data, "energy", -training.energyCost)
-	data.skills[training.skill] = (data.skills[training.skill] or 0) + 1
-	PlayerData.notify(player, training.message, "success")
+	PlayerData.addStat(data, "energy", -energyCost)
+	local gain = 1
+	if math.random() < Pets.buff(player, "skillBoost") then
+		gain = 2
+	end
+	data.skills[training.skill] = (data.skills[training.skill] or 0) + gain
+	Quests.progress(player, "train")
+	PlayerData.notify(player, gain == 2 and (training.message .. " Your buddy helped: double gain!") or training.message, "success")
 	PlayerData.replicate(player)
 end
 
@@ -54,6 +62,7 @@ function Needs.furnitureActivity(player, activityId)
 	if activity.smarts then
 		data.skills.smarts += activity.smarts
 	end
+	Quests.progress(player, "activity")
 	PlayerData.notify(player, activity.message, "success")
 	PlayerData.replicate(player)
 	return false
@@ -65,13 +74,14 @@ function Needs.init()
 			task.wait(Config.NEEDS_TICK)
 			PlayerData.forEach(function(player, data)
 				local wasStarving = data.hunger <= 0
-				PlayerData.addStat(data, "hunger", -Config.HUNGER_DRAIN)
+				PlayerData.addStat(data, "hunger", -Config.HUNGER_DRAIN * (1 - Pets.buff(player, "hungerSaver")))
 				PlayerData.addStat(data, "energy", -Config.ENERGY_DRAIN)
 				local drain = Config.HAPPINESS_DRAIN
 				if data.hunger <= 0 then
 					drain += Config.STARVING_HAPPINESS_DRAIN
 				end
-				PlayerData.addStat(data, "happiness", -drain)
+				PlayerData.addStat(data, "happiness", -drain * (1 - Pets.buff(player, "happyBoost")))
+				Pets.tick(player, data)
 				if data.hunger <= 0 and not wasStarving then
 					PlayerData.notify(player, "You're starving! Eat something from your backpack.", "error")
 				end

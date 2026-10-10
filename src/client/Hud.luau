@@ -60,29 +60,28 @@ function Hud.init(actions)
 		end
 	end)
 
-	-- Bottom menu
+	-- Bottom menu: two rows of three
 	local menu = UI.new("Frame", {
-		Name = "Menu", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.new(0.96, 0, 0, 52), BackgroundTransparency = 1, Parent = UI.Screen,
+		Name = "Menu", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -10),
+		Size = UDim2.new(0.96, 0, 0, 88), BackgroundTransparency = 1, Parent = UI.Screen,
 	}, {
-		UI.new("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8),
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		UI.new("UIGridLayout", {
+			CellSize = UDim2.new(1 / 3, -6, 0, 40), CellPadding = UDim2.fromOffset(6, 6),
+			HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
-		UI.new("UISizeConstraint", { MaxSize = Vector2.new(460, 52) }),
+		UI.new("UISizeConstraint", { MaxSize = Vector2.new(480, 88) }),
 	})
 
 	local buttons = {
+		{ text = "Berry Phone", color = Color3.fromRGB(40, 40, 60), fn = actions.phone },
 		{ text = "Backpack", color = Theme.Accent, fn = actions.backpack },
+		{ text = "Buddies", color = Color3.fromRGB(240, 150, 60), fn = actions.pets },
+		{ text = "Quests", color = Theme.Gold, fn = actions.quests },
+		{ text = "My House", color = Color3.fromRGB(120, 110, 220), fn = actions.house },
 		{ text = "Me", color = Theme.Pink, fn = actions.profile },
-		{ text = "Go Home", color = Theme.Good, fn = actions.home },
-		{ text = "Go to Town", color = Color3.fromRGB(80, 150, 230), fn = actions.town },
 	}
 	for i, info in buttons do
-		UI.button({
-			Text = info.text, Color = info.color, LayoutOrder = i, Size = UDim2.new(0.24, -6, 1, 0),
-			Parent = menu, OnClick = info.fn,
-		})
+		UI.button({ Text = info.text, Color = info.color, LayoutOrder = i, Parent = menu, OnClick = info.fn })
 	end
 end
 
