@@ -21,6 +21,7 @@ local Obby = require(script.Parent.Obby)
 local Quests = require(script.Parent.Quests)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Monetization = require(script.Parent.Monetization)
+local Bank = require(script.Parent.Bank)
 
 World.build()
 PlayerData.init()
@@ -35,6 +36,7 @@ Obby.init(World.obby)
 Quests.init()
 Leaderboard.init()
 Monetization.init()
+Bank.init()
 
 local handlers = {
 	Shop = function(player, prompt)
@@ -44,7 +46,16 @@ local handlers = {
 		Jobs.openBoard(player, prompt:GetAttribute("Target"))
 	end,
 	Work = function(player, prompt)
-		Jobs.work(player, prompt:GetAttribute("Target"))
+		Jobs.startShift(player, prompt:GetAttribute("Target"))
+	end,
+	JobStep = function(player, prompt)
+		Jobs.step(player, prompt:GetAttribute("Target"), prompt.Parent)
+	end,
+	Closet = function(player, prompt)
+		Outfit.openCloset(player, prompt)
+	end,
+	Bank = function(player)
+		Bank.open(player)
 	end,
 	Train = function(player, prompt)
 		Needs.train(player, prompt:GetAttribute("Target"))
@@ -77,6 +88,7 @@ end)
 local function onPlayerAdded(player)
 	local data = PlayerData.load(player)
 	if data then
+		Bank.onLoad(player, data)
 		Housing.assign(player, data)
 		-- Give the client a moment to load its UI so the daily reward toast shows.
 		task.delay(4, function()

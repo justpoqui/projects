@@ -236,14 +236,8 @@ function Panels.backpack(actions)
 		end)
 		section("Clothing", "clothing", function(entry, label)
 			local wearing = data.outfit[entry.item.slot] == entry.id
-			return UI.row(content, order, label, wearing and "Wearing now" or describe(entry.item),
-				wearing and "Take Off" or "Wear", wearing and Theme.Pink or Theme.Good, function()
-					if wearing then
-						Remotes.get("TakeOff"):FireServer(entry.item.slot)
-					else
-						Remotes.get("UseItem"):FireServer(entry.id)
-					end
-				end)
+			return UI.row(content, order, label,
+				(wearing and "Wearing now" or describe(entry.item)) .. "  |  Change outfits at your home closet")
 		end)
 		section("Buddy Food", "petfood", function(entry, label)
 			return UI.row(content, order, label, describe(entry.item), "Feed", Color3.fromRGB(240, 150, 60), function()
@@ -271,16 +265,21 @@ local function requirementText(job)
 	return #parts > 0 and ("Needs " .. table.concat(parts, ", ")) or "No experience needed"
 end
 
+-- buildingId "all" = the Job Center board in the plaza
 function Panels.jobBoard(buildingId)
-	open("Job Board", Vector2.new(540, 420), function(content, data)
+	local all = buildingId == "all"
+	open(all and "Berryvale Job Center" or "Help Wanted", Vector2.new(560, 460), function(content, data)
 		local order = 0
-		for jobId, job in Config.Jobs do
-			if job.building == buildingId then
+		for _, jobId in { "factory", "grocer", "mail", "scientist", "cityhall" } do
+			local job = Config.Jobs[jobId]
+			if all or job.building == buildingId then
 				order += 1
 				local mine = data.job == jobId
-				local subtitle = ("Pays %d per shift  |  %s"):format(Config.jobPay(jobId, 1), requirementText(job))
+				local subtitle = ("Pays %d+  |  %s  |  %s"):format(
+					Config.jobPay(jobId, 1), requirementText(job), Config.JobTasks[jobId].summary)
 				if mine then
-					subtitle = ("You are a %s (level %d)"):format(job.titles[data.jobLevel], data.jobLevel)
+					subtitle = ("You are a %s (level %d)  |  %s"):format(
+						job.titles[data.jobLevel], data.jobLevel, Config.JobTasks[jobId].summary)
 				end
 				UI.row(content, order, job.name, subtitle, mine and "Quit" or "Apply", mine and Theme.Bad or Theme.Good, function()
 					Remotes.get("ApplyJob"):FireServer(mine and "quit" or jobId)
@@ -288,15 +287,13 @@ function Panels.jobBoard(buildingId)
 			end
 		end
 		order += 1
-		UI.heading(content, order, "Other jobs around town")
-		for jobId, job in Config.Jobs do
-			if job.building ~= buildingId then
-				order += 1
-				UI.row(content, order, job.name,
-					("Pays %d  |  %s"):format(Config.jobPay(jobId, 1), requirementText(job)))
-			end
-		end
-		if data.job and Config.Jobs[data.job].building ~= buildingId then
+		UI.label({
+			Text = all and "After applying, go to your workplace and use Start Shift (F) on its Help Wanted board."
+				or "To work, use Start Shift (F) on this board, then follow the glowing markers.",
+			Font = Theme.BodyFont, TextColor3 = Theme.Muted, TextWrapped = true, TextScaled = false, TextSize = 15,
+			Size = UDim2.new(1, 0, 0, 36), LayoutOrder = order, Parent = content,
+		})
+		if data.job and not all and Config.Jobs[data.job].building ~= buildingId then
 			order += 1
 			UI.label({
 				Text = "Applying here will replace your current job.", Font = Theme.BodyFont,
@@ -346,6 +343,29 @@ function Panels.profile()
 		end
 		line(pet and ("Buddy: " .. pet.name) or "No buddy out",
 			pet and Config.describeBuff(pet.id) or (#data.pets .. " buddies in your collection"))
+	end)
+end
+
+-- Guide -------------------------------------------------------------------
+
+function Panels.guide()
+	open("Berryvale Guide", Vector2.new(560, 520), function(content)
+		local order = 0
+		for _, section in Config.Guide do
+			order += 1
+			UI.label({
+				Text = section.title, Size = UDim2.new(1, 0, 0, 28), TextXAlignment = Enum.TextXAlignment.Left,
+				TextColor3 = section.color, LayoutOrder = order, Parent = content,
+			})
+			for _, line in section.lines do
+				order += 1
+				UI.label({
+					Text = line, Font = Theme.BodyFont, TextScaled = false, TextSize = 16, TextWrapped = true,
+					TextXAlignment = Enum.TextXAlignment.Left, AutomaticSize = Enum.AutomaticSize.Y,
+					Size = UDim2.new(1, 0, 0, 20), LayoutOrder = order, Parent = content,
+				})
+			end
+		end
 	end)
 end
 

@@ -50,6 +50,8 @@ local function template()
 		quests = { day = 0, list = {} }, -- list of { id, progress, claimed }
 		obbyTimes = {}, -- ["L1"] = os.time() of the last prize for obby level 1, etc.
 		receipts = {}, -- [purchaseId] = os.time(): Robux purchases already granted
+		bank = { savings = 0, lastInterest = 0, bonds = {} }, -- bonds: { uid, id, amount, payout, matures }
+		skin = 0, -- index into Config.SkinTones, 0 = the avatar's own colors
 		nextUid = 1,
 	}
 end

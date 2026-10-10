@@ -152,6 +152,125 @@ Config.Jobs = {
 }
 
 -- Skill-building places
+-- Job tasks ------------------------------------------------------------------
+-- Working a shift means visiting stations inside the workplace in order.
+-- Stations are placed in building-local coordinates (x, z); the building's
+-- door is at -Z. A station id is "<building>.<id>"; "mailbox" steps pick
+-- random house mailboxes around town.
+Config.SHIFT_TIME_LIMIT = 240 -- seconds to finish a shift before it's cancelled
+
+Config.JobStations = {
+	factory = {
+		{ id = "hopper", label = "Cereal Hopper", prompt = "Scoop Cereal", task = "Scoop cereal at the Cereal Hopper", x = -13, z = -6, color = Color3.fromRGB(255, 200, 60) },
+		{ id = "folder", label = "Box Folder", prompt = "Fold & Fill Box", task = "Fold and fill a box at the Box Folder", x = 0, z = 2, color = Color3.fromRGB(230, 80, 90) },
+		{ id = "crate", label = "Shipping Crate", prompt = "Pack Box", task = "Pack the box in the Shipping Crate", x = 13, z = -6, color = Color3.fromRGB(150, 110, 70) },
+	},
+	grocery = {
+		{ id = "stockroom", label = "Stock Room", prompt = "Grab Crate", task = "Grab a crate of food from the Stock Room", x = 12, z = 4, color = Color3.fromRGB(150, 110, 70) },
+		{ id = "shelfA", label = "Fruit Shelf", prompt = "Stock Shelf", task = "Stock the Fruit Shelf", x = 14, z = -7, color = Color3.fromRGB(230, 80, 90) },
+		{ id = "shelfB", label = "Cereal Shelf", prompt = "Stock Shelf", task = "Stock the Cereal Shelf", x = 5, z = -3, color = Color3.fromRGB(255, 200, 60) },
+		{ id = "shelfC", label = "Bakery Shelf", prompt = "Stock Shelf", task = "Stock the Bakery Shelf", x = -6, z = -3, color = Color3.fromRGB(240, 180, 120) },
+	},
+	postoffice = {
+		{ id = "mailbag", label = "Sorting Table", prompt = "Grab Mail Bag", task = "Grab a mail bag from the Sorting Table", x = -13, z = -4, color = Color3.fromRGB(70, 110, 200) },
+	},
+	lab = {
+		{ id = "blue", label = "Blue Beaker", prompt = "Add Blue", task = "Add the Blue chemical", x = -13, z = -6, color = Color3.fromRGB(80, 150, 255) },
+		{ id = "green", label = "Green Beaker", prompt = "Add Green", task = "Add the Green chemical", x = -13, z = 2, color = Color3.fromRGB(90, 220, 120) },
+		{ id = "pink", label = "Pink Beaker", prompt = "Add Pink", task = "Add the Pink chemical", x = 13, z = -6, color = Color3.fromRGB(255, 120, 200) },
+		{ id = "microscope", label = "Microscope", prompt = "Record Results", task = "Record the results at the Microscope", x = 13, z = 2, color = Color3.fromRGB(200, 200, 210) },
+	},
+	townhall = {
+		{ id = "inbox", label = "In-Box", prompt = "Take Papers", task = "Take the papers from the In-Box", x = -13, z = -6, color = Color3.fromRGB(240, 240, 230) },
+		{ id = "stamp", label = "Stamp Desk", prompt = "Stamp Papers", task = "Stamp the papers at the Stamp Desk", x = 13, z = -6, color = Color3.fromRGB(200, 50, 60) },
+		{ id = "sign", label = "Mayor's Desk", prompt = "Get Signature", task = "Get them signed at the Mayor's Desk", x = 13, z = 2, color = Color3.fromRGB(130, 90, 55) },
+		{ id = "cabinet", label = "Filing Cabinet", prompt = "File Papers", task = "File the papers in the Filing Cabinet", x = -13, z = 2, color = Color3.fromRGB(150, 160, 170) },
+	},
+}
+
+-- steps: station ids in order. shuffle = { first, last } randomizes that
+-- range each shift. "mailbox" = deliver to a random house.
+Config.JobTasks = {
+	factory = { summary = "Scoop, fold and ship cereal boxes", steps = { "hopper", "folder", "crate" } },
+	grocer = { summary = "Restock the shelves", steps = { "stockroom", "shelfA", "shelfB", "shelfC" }, shuffle = { 2, 4 } },
+	mail = { summary = "Deliver mail to houses around town", steps = { "mailbag", "mailbox", "mailbox" } },
+	scientist = { summary = "Mix chemicals in the order shown", steps = { "blue", "green", "pink", "microscope" }, shuffle = { 1, 3 } },
+	cityhall = { summary = "Process paperwork around Town Hall", steps = { "inbox", "stamp", "sign", "cabinet" } },
+}
+
+-- Bank ----------------------------------------------------------------------------
+
+Config.Bank = {
+	savingsRate = 0.01, -- interest per hour on savings, compounded
+	interestCap = 100000, -- savings above this don't earn interest
+	offlineHoursCap = 24, -- most hours of interest you can earn while away
+	maxBonds = 5,
+	minBond = 50,
+	maxBond = 25000,
+	-- Bonds lock Berrybucks for a while and pay a fixed return when they mature.
+	Bonds = {
+		{ id = "short", name = "1-Hour Berry Bond", hours = 1, rate = 0.05 },
+		{ id = "medium", name = "4-Hour Berry Bond", hours = 4, rate = 0.15 },
+		{ id = "long", name = "12-Hour Berry Bond", hours = 12, rate = 0.40 },
+	},
+}
+
+-- Info board & Guide app --------------------------------------------------------
+
+Config.Guide = {
+	{
+		title = "Where to Start", color = Color3.fromRGB(90, 190, 110),
+		lines = {
+			"1. Tap the Berry Phone (left side) to zip anywhere in town.",
+			"2. Visit your house on Maple Court or Willow Way - your name is on the sign out front.",
+			"3. Get a job: find the HELP WANTED board inside a workplace, apply, then Start Shift and do the tasks.",
+			"4. Spend Berrybucks on Berry Boxes at the shops and decorate your home!",
+		},
+	},
+	{
+		title = "What to Do", color = Color3.fromRGB(150, 80, 200),
+		lines = {
+			"- Work jobs and get promoted for bigger pay.",
+			"- Train Smarts at the School and Fitness at the Gym to unlock better jobs.",
+			"- Play 5 games at the Berry Arcade and beat both Berry Dash obby levels.",
+			"- Collect buddies, upgrade your house, and dress up at your closet.",
+			"- Save in the Berry Bank, finish daily quests, and like your neighbors' houses.",
+		},
+	},
+	{
+		title = "Helpful Tips", color = Color3.fromRGB(255, 140, 60),
+		lines = {
+			"- Keep Hunger, Energy and Happy up: eat food and sleep in your bed.",
+			"- Feed your buddy or it loses its perk.",
+			"- The boards inside each shop show what every tier contains.",
+			"- Sparkle and Royal boxes have better odds.",
+			"- Money in the bank earns interest, even while you're offline.",
+			"- Check Cooldowns under the phone to see when things are ready.",
+		},
+	},
+}
+
+-- Skin tones you can pick at your closet
+Config.SkinTones = {
+	Color3.fromRGB(255, 224, 189), Color3.fromRGB(241, 194, 125), Color3.fromRGB(224, 172, 105),
+	Color3.fromRGB(198, 134, 66), Color3.fromRGB(141, 85, 36), Color3.fromRGB(92, 56, 30),
+	Color3.fromRGB(255, 205, 225), Color3.fromRGB(180, 220, 255), Color3.fromRGB(190, 240, 190),
+}
+Config.CLOSET_RANGE = 14 -- studs you can be from your closet while changing
+
+-- Display names for cooldown timers shown under the phone
+Config.CooldownNames = {
+	work = "Next work shift",
+	train_school = "School class",
+	train_gym = "Gym workout",
+	arcade = "Arcade",
+	activity_sleep = "Nap",
+	activity_relax = "Relax on sofa",
+	activity_watch = "Watch TV",
+	activity_read = "Read a book",
+	activity_royal = "Sit on throne",
+}
+
 Config.Training = {
 	school = { skill = "smarts", energyCost = 10, prompt = "Attend Class", message = "You learned something new! +1 Smarts" },
 	gym = { skill = "fitness", energyCost = 15, prompt = "Work Out", message = "Feel the burn! +1 Fitness" },
@@ -403,6 +522,8 @@ Config.PhoneApps = {
 	{ id = "plaza", label = "Town Square", icon = "⛲", color = Color3.fromRGB(80, 150, 230) },
 	{ id = "visit", label = "Visit", icon = "👋", color = Color3.fromRGB(60, 180, 170) },
 	{ id = "store", label = "Robux Store", icon = "💎", color = Color3.fromRGB(40, 170, 90) },
+	{ id = "bank", label = "Bank", icon = "🏦", color = Color3.fromRGB(200, 160, 40) },
+	{ id = "guide", label = "Guide", icon = "📖", color = Color3.fromRGB(90, 120, 220) },
 	{ id = "maplecourt", label = "Maple Court", icon = "🍁", color = Color3.fromRGB(220, 110, 50) },
 	{ id = "willowway", label = "Willow Way", icon = "🌳", color = Color3.fromRGB(70, 150, 90) },
 	{ id = "grocery", label = "Grocery", icon = "🍎", color = Color3.fromRGB(230, 80, 80) },

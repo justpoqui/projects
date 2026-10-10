@@ -12,16 +12,20 @@ project.
 
 | Place / menu | What it's for |
 | --- | --- |
+| **Info boards** (at spawn) | *Where to Start*, *What to Do* and *Helpful Tips*. The same text is in the **Guide** app on the phone. |
 | **Berry Phone** (left side) | Quick-teleport apps for every spot in town, both neighborhoods, your home, the obby, visiting friends, and the Robux Store. |
 | **Your house** (Maple Court or Willow Way, 24 houses) | Every player gets a house. Place furniture inside; beds, sofas, TVs, bookshelves, the arcade cabinet and the throne have activities. Hold **F** to pick furniture up. |
+| **Closet** (in every house) | The only place to change your look: wear or take off Boutique clothing and pick a skin tone. Only works in your own house. |
 | **My House menu** | Upgrade from Cottage to Family Home, Big House and Mansion (bigger rooms, more furniture slots), and buy wall, floor and roof styles. |
-| **Shops** | Every shop sells **Berry Boxes**: Berry, Sparkle and Royal boxes that roll a random item by rarity (Common, Uncommon, Rare, Epic, Legendary). The shop window shows the odds and everything inside. Grocery = food, Cozy Home = furniture, **Berry Boutique** = hats, glasses, capes and wings, **Buddy Barn** = buddies (plus buddy food, sold directly). |
+| **Shops** | Inside each shop, display boards along the left wall show every tier's items and the chance from each box (with sample buddies and clothing on pedestals). Every shop sells **Berry Boxes**: Berry, Sparkle and Royal boxes that roll a random item by rarity (Common, Uncommon, Rare, Epic, Legendary). The shop window shows the odds and everything inside. Grocery = food, Cozy Home = furniture, **Berry Boutique** = hats, glasses, capes and wings, **Buddy Barn** = buddies (plus buddy food, sold directly). |
 | **Buddies** | Pets that follow you. Each one has a **perk** whose strength depends on its rarity: more job pay, bigger game prizes, slower hunger, less tiring work, slower sadness, or double skill gains. Perks only work while your buddy is out **and fed**. Rename (names are filtered by Roblox) or release buddies for Berrybucks. |
 | **Berry Arcade** | Neon-lit, with five games: *Berry Catch*, *Cereal Stacker*, *Memory Match*, *Whack-a-Berry* and *Pattern Pop*. The cabinets inside open a game picker. |
 | **Berry Dash obby** | Behind the arcade. Level 1 pays a prize every 10 minutes. **Level 2: Sky Run** continues from the level 1 finish with blinking platforms, a spinning bar, tiny pads, a tightrope, a truss climb and rising lava walls, and pays a bigger prize every 15 minutes. Falling or touching red sends you back to your level's checkpoint. |
 | **Robux Store** (right side) | Berrybucks packs, a Royal Buddy Box, and the VIP and Lucky Berries game passes. See *Selling things for Robux* below. |
 | **School / Gym** | Train **Smarts** and **Fitness**, which better jobs require. |
-| **Jobs** | Factory, Grocery, Post Office, Science Lab, Town Hall. Apply at a Job Board, then **Work Shift**. Every 5 shifts gets you a promotion and a raise. |
+| **Jobs** | Factory, Grocery, Post Office, Science Lab, Town Hall. Apply at the **Help Wanted** board inside the workplace (or the **Job Center** board in the plaza), then **Start Shift** and do the job's tasks: scoop, fold and pack cereal; restock shelves; deliver mail to houses; mix chemicals in order; process paperwork. A tracker and glowing marker show the next step. Every 5 shifts gets you a promotion and a raise. |
+| **Berry Bank** | Savings earn 1% interest every hour (also while you're offline, up to 24 hours). **Berry Bonds** lock up Berrybucks for 1, 4 or 12 hours and pay +5%, +15% or +40%. |
+| **Cooldowns** (under the phone) | A dropdown with live timers: next work shift, training, arcade, furniture activities, obby prizes, bonds and the next daily reward. |
 | **Quests** | A login-streak reward every day plus 3 random daily quests that pay Berrybucks. |
 | **Visit & Like** | Visit neighbors from the phone, and like their house (mailbox or Visit menu, once per house per day). The most-liked houses show on the **Best Houses** board in the Town Square. |
 
@@ -85,8 +89,9 @@ src/
     PlayerData        DataStore load/save, leaderstats, replication to client
     Housing           plots, furniture, upgrades, styles, likes, teleports
     Shops             Berry Box rolls, buddy food, eating and wearing items
-    Pets, Outfit      buddies (perks, hunger, names); worn clothing
-    Jobs, Needs       jobs and promotions; needs drain, training, furniture activities
+    Pets, Outfit      buddies (perks, hunger, names); clothing and skin tone (closet only)
+    Jobs, Needs       job shifts with station tasks, promotions; needs drain, training, activities
+    Bank              savings interest and Berry Bonds
     Arcade, Obby      server-side minigame score checks; obby checkpoints, prizes, moving parts
     Monetization      Robux developer products and game passes
     Quests            daily reward and daily quests
@@ -100,6 +105,9 @@ src/
     Placement         furniture placement preview
     Arcade            game picker + shared game window
     StoreUI           the Robux Store window
+    JobTracker        job task panel, marker and station prompts
+    CooldownsUI       the Cooldowns dropdown
+    ClosetUI, BankUI  closet wardrobe; bank teller window
     BerryCatch, Stacker, Memory, Whack, Pattern   the minigames
     State             latest copy of the player's profile
 ```

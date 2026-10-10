@@ -16,6 +16,10 @@ local HouseUI = require(script.Parent.HouseUI)
 local Phone = require(script.Parent.Phone)
 local Arcade = require(script.Parent.Arcade)
 local StoreUI = require(script.Parent.StoreUI)
+local JobTracker = require(script.Parent.JobTracker)
+local CooldownsUI = require(script.Parent.CooldownsUI)
+local ClosetUI = require(script.Parent.ClosetUI)
+local BankUI = require(script.Parent.BankUI)
 -- Minigames register themselves with Arcade
 require(script.Parent.BerryCatch)
 require(script.Parent.Stacker)
@@ -48,6 +52,9 @@ end
 function actions.visit()
 	HouseUI.visit()
 end
+function actions.guide()
+	Panels.guide()
+end
 function actions.store()
 	StoreUI.open()
 end
@@ -57,15 +64,19 @@ function actions.phone()
 end
 
 Hud.init(actions)
+CooldownsUI.init()
 
 Remotes.get("Notify").OnClientEvent:Connect(UI.notify)
 Remotes.get("OpenShop").OnClientEvent:Connect(Panels.shop)
 Remotes.get("OpenJobBoard").OnClientEvent:Connect(Panels.jobBoard)
 Remotes.get("OpenArcade").OnClientEvent:Connect(Arcade.open)
 Remotes.get("BoxOpened").OnClientEvent:Connect(PetsUI.boxOpened)
+Remotes.get("OpenCloset").OnClientEvent:Connect(ClosetUI.open)
+Remotes.get("OpenBank").OnClientEvent:Connect(BankUI.open)
 
--- "Pick Up" prompts only show on your own furniture; "Like House" only on
--- other people's houses.
+-- "Pick Up" prompts only show on your own furniture, "Like House" only on
+-- other people's houses, closets only in your own house, and job station
+-- prompts only for your current task step (JobTracker handles those).
 local function filterPrompt(prompt)
 	local action = prompt:GetAttribute("Action")
 	local ownerId = prompt:GetAttribute("OwnerId")
@@ -73,10 +84,25 @@ local function filterPrompt(prompt)
 		prompt.Enabled = ownerId == player.UserId
 	elseif action == "Like" then
 		prompt.Enabled = ownerId ~= nil and ownerId ~= player.UserId
+	elseif action == "Closet" then
+		prompt.Enabled = prompt:GetAttribute("PlotIndex") == player:GetAttribute("PlotIndex")
 	end
 end
+local closetPrompts = {}
+player:GetAttributeChangedSignal("PlotIndex"):Connect(function()
+	for prompt in closetPrompts do
+		filterPrompt(prompt)
+	end
+end)
 local function watchPrompt(inst)
 	if inst:IsA("ProximityPrompt") then
+		JobTracker.register(inst)
+		if inst:GetAttribute("Action") == "Closet" then
+			closetPrompts[inst] = true
+			inst.Destroying:Connect(function()
+				closetPrompts[inst] = nil
+			end)
+		end
 		filterPrompt(inst)
 		-- Re-check when a house changes owner (the server also toggles Enabled).
 		inst:GetAttributeChangedSignal("OwnerId"):Connect(function()
@@ -96,6 +122,6 @@ end
 Workspace.DescendantAdded:Connect(watchPrompt)
 
 task.delay(2, function()
-	UI.notify("Welcome to Berryvale! Open your Berry Phone to zip around town.", "info")
+	UI.notify("Welcome to Berryvale! Read the info boards in front of you, or open Guide on your Berry Phone.", "info")
 	UI.notify("Get a job to earn Berrybucks, then open Berry Boxes at the shops!", "info")
 end)

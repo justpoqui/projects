@@ -106,6 +106,169 @@ local function lampPost(position)
 	light.Parent = bulb
 end
 
+-- A SurfaceGui on a part's Front face with a header strip and a body text.
+local function boardText(board, title, titleColor, body, bodyColor)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 50
+	gui.Parent = board
+	local header = Instance.new("TextLabel")
+	header.Size = UDim2.new(1, 0, 0.16, 0)
+	header.BackgroundColor3 = titleColor
+	header.Font = Enum.Font.FredokaOne
+	header.TextScaled = true
+	header.TextColor3 = Color3.new(1, 1, 1)
+	header.Text = title
+	header.Parent = gui
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(0.92, 0, 0.8, 0)
+	text.Position = UDim2.new(0.04, 0, 0.18, 0)
+	text.BackgroundTransparency = 1
+	text.Font = Enum.Font.GothamMedium
+	text.TextScaled = true
+	text.TextWrapped = true
+	text.TextXAlignment = Enum.TextXAlignment.Left
+	text.TextYAlignment = Enum.TextYAlignment.Top
+	text.TextColor3 = bodyColor or Color3.fromRGB(70, 40, 90)
+	text.Text = body
+	text.Parent = gui
+	return gui
+end
+
+local function pct(chance)
+	local v = chance * 100
+	return v < 1 and ("%.1f%%"):format(v) or ("%d%%"):format(math.floor(v + 0.5))
+end
+
+-- Tier display stands along a shop's left wall: one board per tier listing
+-- what's inside and the chance from each box, with a sample model for
+-- buddies and clothing.
+local function tierDisplays(model, at, storeId)
+	local shop = Config.ShopBoxes[storeId]
+	local byTier = Config.poolByTier(shop.pool)
+	local chances = {}
+	for _, kind in Config.BoxKindOrder do
+		chances[kind] = Config.boxChances(kind, shop.pool)
+	end
+	local i = 0
+	for _, tier in Config.TierOrder do
+		local ids = byTier[tier]
+		if ids then
+			local z = -12 + i * 5
+			i += 1
+			local tierColor = Config.Tiers[tier].color
+			local names = {}
+			for _, id in ids do
+				table.insert(names, "- " .. Config.nameOf(id))
+			end
+			local odds = {}
+			for _, kind in Config.BoxKindOrder do
+				local c = chances[kind][tier]
+				table.insert(odds, Config.BoxKinds[kind].name:gsub(" Berry Box", ""):gsub("Berry Box", "Berry") .. ": " .. (c and pct(c) or "-"))
+			end
+			-- Board on the wall, text facing into the room (+X local)
+			local board = part(model, {
+				Name = "TierBoard", Size = Vector3.new(4.6, 7, 0.3),
+				CFrame = at(-18.7, 6.5, z) * CFrame.Angles(0, -math.pi / 2, 0), Color = Color3.fromRGB(255, 250, 240),
+			})
+			boardText(board, tier, tierColor, table.concat(names, "\n") .. "\n\nChance:\n" .. table.concat(odds, "\n"))
+			part(model, {
+				Name = "TierTrim", Size = Vector3.new(4.8, 0.3, 0.4),
+				CFrame = at(-18.7, 10.1, z) * CFrame.Angles(0, -math.pi / 2, 0), Color = tierColor, Material = Enum.Material.Neon,
+			})
+			-- Sample model on a pedestal
+			local sample
+			if shop.pool == "pet" then
+				sample = Builders.buddy(ids[1])
+			elseif shop.pool == "clothing" then
+				sample = Builders.clothing(ids[1])
+			end
+			if sample then
+				part(model, {
+					Name = "Pedestal", Size = Vector3.new(1.6, 1.4, 1.6), CFrame = at(-17.3, 1.7, z),
+					Color = tierColor, Material = Enum.Material.Marble,
+				})
+				for _, p in sample:GetDescendants() do
+					if p:IsA("BasePart") then
+						p.Anchored = true
+					end
+				end
+				local lift = shop.pool == "pet" and 1.2 or 0.4
+				sample:PivotTo(at(-17.3, 2.4 + lift, z) * CFrame.Angles(0, -math.pi / 2, 0))
+				sample.Parent = model
+			end
+		end
+	end
+end
+
+-- Work stations for a job building (see Config.JobStations)
+local function jobStations(model, at, buildingId)
+	for _, station in Config.JobStations[buildingId] or {} do
+		local base = part(model, {
+			Name = "Station_" .. station.id, Size = Vector3.new(3, 3.5, 3), CFrame = at(station.x, 2.75, station.z),
+			Color = Color3.fromRGB(235, 235, 240),
+		})
+		part(model, {
+			Name = "StationTop", Size = Vector3.new(2.4, 0.6, 2.4), CFrame = at(station.x, 4.8, station.z),
+			Color = station.color, Material = Enum.Material.Neon,
+		})
+		local gui = Instance.new("BillboardGui")
+		gui.Size = UDim2.fromOffset(140, 30)
+		gui.StudsOffset = Vector3.new(0, 3.4, 0)
+		gui.MaxDistance = 40
+		gui.Parent = base
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.TextStrokeTransparency = 0.3
+		label.Text = station.label
+		label.Parent = gui
+		-- Hidden until it's this player's current task step (the client shows it)
+		local p = prompt(base, station.prompt, station.label, { Action = "JobStep", Target = buildingId .. "." .. station.id })
+		p.Enabled = false
+	end
+end
+
+-- Cork job board on the inside of the front wall, right of the door.
+local function jobBoard(model, at, buildingId)
+	local lines = {}
+	local jobIds = {}
+	for jobId, job in Config.Jobs do
+		if job.building == buildingId then
+			table.insert(jobIds, jobId)
+			local req = {}
+			for skill, n in job.req do
+				table.insert(req, n .. " " .. (skill == "smarts" and "Smarts" or "Fitness"))
+			end
+			table.insert(lines, ("%s\nPay: %d-%d per shift\nNeeds: %s\nTask: %s"):format(
+				job.name, Config.jobPay(jobId, 1), Config.jobPay(jobId, Config.MAX_JOB_LEVEL),
+				#req > 0 and table.concat(req, ", ") or "nothing!", Config.JobTasks[jobId].summary))
+		end
+	end
+	if #jobIds == 0 then
+		return
+	end
+	local frame = part(model, {
+		Name = "JobBoardFrame", Size = Vector3.new(8.6, 6.6, 0.3), CFrame = at(11, 6.5, -13.8) * CFrame.Angles(0, math.pi, 0),
+		Color = Color3.fromRGB(120, 85, 55), Material = Enum.Material.Wood,
+	})
+	local cork = part(model, {
+		Name = "JobBoard", Size = Vector3.new(8, 6, 0.2), CFrame = at(11, 6.5, -13.55) * CFrame.Angles(0, math.pi, 0),
+		Color = Color3.fromRGB(205, 160, 110), Material = Enum.Material.Fabric,
+	})
+	boardText(cork, "HELP WANTED", Color3.fromRGB(200, 60, 70), table.concat(lines, "\n\n"))
+	prompt(cork, "View Jobs", "Job Board", { Action = "JobBoard", Target = buildingId })
+	local start = prompt(cork, "Start Shift", "Job Board", { Action = "Work", Target = jobIds[1] })
+	start.KeyboardKeyCode = Enum.KeyCode.F
+	start.GamepadKeyCode = Enum.KeyCode.ButtonY
+	start.UIOffset = Vector2.new(0, 60)
+	return frame
+end
+
 -- Builds a walk-in box building. Local -Z is the front (door side).
 -- `facing` is +1 if the door should face world +Z, -1 for world -Z.
 local function building(def)
@@ -184,39 +347,19 @@ local function building(def)
 	if def.decorate then
 		def.decorate(model, at)
 	end
+	if Config.JobStations[def.id] then
+		jobStations(model, at, def.id)
+	end
+	jobBoard(model, at, def.id)
+	if Config.ShopBoxes[def.id] then
+		tierDisplays(model, at, def.id)
+	end
 
 	model.Parent = root
 	World.buildings[def.id] = { model = model, cframe = base }
 	-- Berry Phone teleport spot: outside the front door, facing the building
 	World.teleports[def.id] = base * CFrame.new(0, 3, -size.Z / 2 - 8) * CFrame.Angles(0, math.pi, 0)
 	return model
-end
-
-local function jobPrompts(buildingId)
-	local list = {}
-	for jobId, job in Config.Jobs do
-		if job.building == buildingId then
-			table.insert(list, {
-				action = "Job Board", attributes = { Action = "JobBoard", Target = buildingId },
-				color = Color3.fromRGB(120, 200, 255),
-			})
-			table.insert(list, {
-				action = "Work Shift (" .. job.name .. ")", attributes = { Action = "Work", Target = jobId },
-				color = Color3.fromRGB(140, 230, 140),
-			})
-		end
-	end
-	return list
-end
-
-local function concat(...)
-	local out = {}
-	for _, list in { ... } do
-		for _, v in list do
-			table.insert(out, v)
-		end
-	end
-	return out
 end
 
 local function material(name, fallback)
@@ -284,6 +427,27 @@ function World.buildHouse(plot, level, style)
 		Name = "Roof", Size = Vector3.new(hx * 2 - 6, 1.2, hz * 2 - 6), CFrame = at(0, h + 2.8, 0),
 		Color = roofStyle.color, Material = material(roofStyle.material, Enum.Material.SmoothPlastic),
 	})
+	-- Closet in the back-left corner: the only place to change your look
+	local closetCF = at(-levelInfo.innerX + 2.2, 0, levelInfo.innerZ - 1.4)
+	local closet = part(model, {
+		Name = "Closet", Size = Vector3.new(4, 8, 2.6), CFrame = closetCF * CFrame.new(0, 5, 0),
+		Color = Color3.fromRGB(170, 120, 80), Material = Enum.Material.WoodPlanks,
+	})
+	for _, side in { -1, 1 } do
+		part(model, {
+			Name = "ClosetDoor", Size = Vector3.new(1.85, 7.4, 0.15), CFrame = closetCF * CFrame.new(side * 0.97, 5, -1.35),
+			Color = Color3.fromRGB(205, 160, 115), Material = Enum.Material.Wood,
+		})
+		part(model, {
+			Name = "ClosetKnob", Shape = Enum.PartType.Ball, Size = Vector3.new(0.3, 0.3, 0.3),
+			CFrame = closetCF * CFrame.new(side * 0.25, 5, -1.5), Color = Color3.fromRGB(255, 210, 90),
+			Material = Enum.Material.Foil,
+		})
+	end
+	local closetPrompt = prompt(closet, "Change Outfit", "Closet", { Action = "Closet", PlotIndex = plot.index })
+	closetPrompt.RequiresLineOfSight = false
+	plot.closet = closet
+
 	if level >= 3 then
 		part(model, {
 			Name = "Chimney", Size = Vector3.new(3, 6, 3), CFrame = at(hx * 0.5, h + 4, hz * 0.4),
@@ -357,6 +521,10 @@ local function buildPlot(index, position, facing)
 	})
 	local likePrompt = prompt(mailbox, "Like House", "", { Action = "Like" })
 	likePrompt.Enabled = false
+	-- Mail carriers deliver here (shown only to the carrier whose task it is)
+	local deliver = prompt(mailbox, "Deliver Mail", "Mailbox", { Action = "JobStep", Target = "mailbox." .. index })
+	deliver.KeyboardKeyCode = Enum.KeyCode.F
+	deliver.Enabled = false
 
 	local furnitureFolder = folder("Furniture", model)
 	model.Parent = root
@@ -371,7 +539,9 @@ local function buildPlot(index, position, facing)
 		furnitureFolder = furnitureFolder,
 		owner = nil,
 		neighborhood = "",
+		mailbox = mailbox,
 		-- Filled in by World.buildHouse:
+		closet = nil,
 		house = nil,
 		floor = nil,
 		innerX = 0,
@@ -678,9 +848,7 @@ function World.build()
 	building({
 		id = "grocery", label = "Berryvale Grocery", position = Vector3.new(-125, 0, north), facing = 1,
 		size = Vector3.new(40, 16, 30), color = Color3.fromRGB(255, 235, 200), roof = Color3.fromRGB(90, 170, 90),
-		prompts = concat({
-			{ action = "Shop", attributes = { Action = "Shop", Target = "grocery" } },
-		}, jobPrompts("grocery")),
+		prompts = { { action = "Shop", attributes = { Action = "Shop", Target = "grocery" } } },
 	})
 	building({
 		id = "furniture", label = "Cozy Home Furnishings", position = Vector3.new(-75, 0, north), facing = 1,
@@ -782,7 +950,7 @@ function World.build()
 	building({
 		id = "factory", label = "Berry Crunch Factory", position = Vector3.new(-125, 0, south), facing = -1,
 		size = Vector3.new(40, 18, 30), color = Color3.fromRGB(210, 210, 215), roof = Color3.fromRGB(230, 70, 90),
-		prompts = jobPrompts("factory"),
+		prompts = {},
 		decorate = function(model, at)
 			part(model, {
 				Name = "Smokestack", Size = Vector3.new(4, 14, 4), CFrame = at(12, 25, 8),
@@ -793,17 +961,17 @@ function World.build()
 	building({
 		id = "postoffice", label = "Post Office", position = Vector3.new(-75, 0, south), facing = -1,
 		size = Vector3.new(40, 16, 30), color = Color3.fromRGB(200, 220, 255), roof = Color3.fromRGB(50, 80, 170),
-		prompts = jobPrompts("postoffice"),
+		prompts = {},
 	})
 	building({
 		id = "lab", label = "Science Lab", position = Vector3.new(75, 0, south), facing = -1,
 		size = Vector3.new(40, 16, 30), color = Color3.fromRGB(235, 245, 245), roof = Color3.fromRGB(60, 180, 180),
-		prompts = jobPrompts("lab"),
+		prompts = {},
 	})
 	building({
 		id = "townhall", label = "Town Hall", position = Vector3.new(125, 0, south), facing = -1,
 		size = Vector3.new(40, 20, 30), color = Color3.fromRGB(245, 240, 225), roof = Color3.fromRGB(110, 110, 120),
-		prompts = jobPrompts("townhall"),
+		prompts = {},
 		decorate = function(model, at)
 			for i = -2, 2 do
 				if i ~= 0 then
@@ -822,6 +990,39 @@ function World.build()
 		prompts = {
 			{ action = Config.Training.gym.prompt, attributes = { Action = "Train", Target = "gym" } },
 		},
+	})
+
+	building({
+		id = "bank", label = "Berry Bank", position = Vector3.new(-175, 0, south), facing = -1,
+		size = Vector3.new(40, 18, 30), color = Color3.fromRGB(240, 235, 220), roof = Color3.fromRGB(200, 160, 40),
+		prompts = { { action = "Bank Teller", attributes = { Action = "Bank" }, color = Color3.fromRGB(255, 210, 80) } },
+		decorate = function(model, at)
+			-- Columns out front and a big round vault door on the back wall
+			for _, x in { -14, -8, 8, 14 } do
+				part(model, {
+					Name = "Column", Shape = Enum.PartType.Cylinder, Size = Vector3.new(15, 2, 2),
+					CFrame = at(x, 8.5, -17) * CFrame.Angles(0, 0, math.rad(90)),
+					Color = Color3.new(1, 1, 1), Material = Enum.Material.Marble,
+				})
+			end
+			part(model, {
+				Name = "Vault", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.8, 9, 9),
+				CFrame = at(0, 8, 14.2) * CFrame.Angles(0, math.rad(90), 0),
+				Color = Color3.fromRGB(150, 155, 165), Material = Enum.Material.DiamondPlate,
+			})
+			part(model, {
+				Name = "VaultWheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 3, 3),
+				CFrame = at(0, 8, 13.6) * CFrame.Angles(0, math.rad(90), 0),
+				Color = Color3.fromRGB(255, 200, 60), Material = Enum.Material.Foil,
+			})
+			for i = 0, 5 do
+				part(model, {
+					Name = "GoldBar", Size = Vector3.new(1.6, 0.6, 0.8),
+					CFrame = at(-14 + (i % 3) * 1.8, 1.3 + math.floor(i / 3) * 0.6, 12),
+					Color = Color3.fromRGB(255, 200, 60), Material = Enum.Material.Foil,
+				})
+			end
+		end,
 	})
 
 	-- Street furniture
@@ -860,6 +1061,44 @@ function World.build()
 	World.teleports.plaza = World.townSpawn
 	World.teleports.obby = CFrame.new(125, 4, -66) -- faces -Z, along the course
 	World.setLeaderboard = buildLeaderboard()
+
+	-- Info boards between the spawn and the fountain. They face the spawn (+Z),
+	-- so turn each board's -Z text face around.
+	for i, section in Config.Guide do
+		local x = (i - 2) * 11
+		part(root, {
+			Name = "InfoPost", Size = Vector3.new(0.6, 3, 0.6), CFrame = CFrame.new(x, 1.5, -40.2),
+			Color = Color3.fromRGB(120, 85, 55), Material = Enum.Material.Wood,
+		})
+		local board = part(root, {
+			Name = "InfoBoard", Size = Vector3.new(10, 8, 0.4), CFrame = CFrame.new(x, 7, -40) * CFrame.Angles(0, math.pi, 0),
+			Color = Color3.fromRGB(255, 250, 240),
+		})
+		boardText(board, section.title, section.color, table.concat(section.lines, "\n"))
+	end
+
+	-- Job Center board on the east side of the plaza, facing the middle (-X)
+	local jobLines = {}
+	for _, jobId in { "factory", "grocer", "mail", "scientist", "cityhall" } do
+		local job = Config.Jobs[jobId]
+		local req = {}
+		for skill, n in job.req do
+			table.insert(req, n .. " " .. (skill == "smarts" and "Smarts" or "Fitness"))
+		end
+		table.insert(jobLines, ("%s - %d+ per shift%s"):format(
+			job.name, Config.jobPay(jobId, 1), #req > 0 and (" (needs " .. table.concat(req, ", ") .. ")") or ""))
+	end
+	local jobCenter = part(root, {
+		Name = "JobCenterBoard", Size = Vector3.new(14, 10, 0.6), CFrame = CFrame.new(36, 7, -48) * CFrame.Angles(0, math.pi / 2, 0),
+		Color = Color3.fromRGB(205, 160, 110), Material = Enum.Material.Fabric,
+	})
+	part(root, {
+		Name = "BoardPost", Size = Vector3.new(1, 3, 1), CFrame = CFrame.new(36.5, 1.5, -48),
+		Color = Color3.fromRGB(120, 85, 55), Material = Enum.Material.Wood,
+	})
+	boardText(jobCenter, "Berryvale Job Center", Color3.fromRGB(200, 60, 70),
+		table.concat(jobLines, "\n") .. "\n\nApply here or at each workplace's Help Wanted board.")
+	prompt(jobCenter, "View Jobs", "Job Center", { Action = "JobBoard", Target = "all" }).MaxActivationDistance = 14
 
 	-- Two neighborhoods, each a street with 6 houses on each side (24 total).
 	-- Houses on the near side face +Z toward the street; far side faces -Z.

@@ -205,7 +205,8 @@ end
 -- Notifications -----------------------------------------------------------
 
 local toastHolder = UI.new("Frame", {
-	Name = "Toasts", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 70),
+	-- Below the job task panel (which sits at the top center)
+	Name = "Toasts", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 134),
 	Size = UDim2.new(0.9, 0, 0, 300), BackgroundTransparency = 1, Parent = screen, ZIndex = 50,
 }, {
 	UI.new("UIListLayout", {

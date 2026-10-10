@@ -13,7 +13,7 @@ local EVENTS = {
 	"BoxOpened", -- server -> client: storeId, boxKind, rewardId, tier, refund
 	"BuyBox", -- client -> server: storeId, boxKind
 	"BuyItem", -- client -> server: itemId (buddy food, the only direct buys)
-	"UseItem", -- client -> server: itemId (eat food / wear clothing)
+	"UseItem", -- client -> server: itemId (eat food / wear clothing at your closet)
 	"TakeOff", -- client -> server: clothing slot
 	"PlaceFurniture", -- client -> server: itemId, x, z, rotation
 	"PickUpFurniture", -- client -> server: uid
@@ -29,6 +29,15 @@ local EVENTS = {
 	"SetHouseStyle", -- client -> server: part ("wall"|"floor"|"roof"), styleId
 	"LikeHouse", -- client -> server: owner userId
 	"ClaimQuest", -- client -> server: quest index
+	"CancelShift", -- client -> server: give up the current job task
+	"CooldownStarted", -- server -> client: cooldown key, seconds
+	"OpenBank", -- server -> client
+	"BankDeposit", -- client -> server: amount
+	"BankWithdraw", -- client -> server: amount
+	"BankBuyBond", -- client -> server: bond id, amount
+	"BankCollectBond", -- client -> server: bond uid
+	"OpenCloset", -- server -> client
+	"SetSkinTone", -- client -> server: index into Config.SkinTones (0 = avatar default)
 }
 
 local FUNCTIONS = {
