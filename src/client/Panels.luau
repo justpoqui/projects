@@ -373,9 +373,8 @@ end
 
 function Panels.quests()
 	open("Daily Quests", Vector2.new(520, 440), function(content, data)
-		local streak = data.daily.streak
 		UI.label({
-			Text = ("Login streak: %d day%s. Come back tomorrow for a bigger reward!"):format(streak, streak == 1 and "" or "s"),
+			Text = "Daily login rewards are in the Rewards calendar!",
 			Font = Theme.BodyFont, TextColor3 = Theme.Muted, Size = UDim2.new(1, 0, 0, 20), LayoutOrder = 0, Parent = content,
 		})
 		local byId = {}

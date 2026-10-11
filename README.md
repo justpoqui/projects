@@ -26,7 +26,9 @@ project.
 | **Jobs** | Factory, Grocery, Post Office, Science Lab, Town Hall. Apply at the **Help Wanted** board inside the workplace (or the **Job Center** board in the plaza), then **Start Shift** and do the job's tasks: scoop, fold and pack cereal; restock shelves; deliver mail to houses; mix chemicals in order; process paperwork. A tracker and glowing marker show the next step. Every 5 shifts gets you a promotion and a raise. |
 | **Berry Bank** | Savings earn 1% interest every hour (also while you're offline, up to 24 hours). **Berry Bonds** lock up Berrybucks for 1, 4 or 12 hours and pay +5%, +15% or +40%. |
 | **Cooldowns** (under the phone) | A dropdown with live timers: next work shift, training, arcade, furniture activities, obby prizes, bonds and the next daily reward. |
-| **Quests** | A login-streak reward every day plus 3 random daily quests that pay Berrybucks. |
+| **Rewards** (right side, red "!" when something is ready) | **Calendar:** the whole month, with a Berrybucks bonus every day (Tuesday = event day, Thursday = a Rare/tier 3 Berry Box, last day of the month = 500). Claimed days get a check and missed days are marked. **Playtime:** every 10 minutes of play pays 100, 200, 400, 600, then 1000 Berrybucks, and 60 minutes gives an Epic (tier 4) Berry Box, then it starts over. **Home Rewards:** one free furniture item per day for 7 days, climbing Common, Common, Uncommon, Uncommon, Rare, Epic, Legendary. Days are UTC. |
+| **Tuesday events** | Every hour on Tuesdays a surprise event is posted on the **Event Board** in the Town Square, as a toast, and as a countdown banner, then it starts at a random minute: *Berry Rain* (grab falling berries for Berrybucks), *Double Pay*, *Lucky Boxes* or *Cozy Time* (needs don't drain). Set `Config.EVENTS_EVERY_DAY = true` to test on other days. |
+| **Quests** | 3 random daily quests that pay Berrybucks. |
 | **Visit & Like** | Visit neighbors from the phone, and like their house (mailbox or Visit menu, once per house per day). The most-liked houses show on the **Best Houses** board in the Town Square. |
 
 **Needs:** Hunger, Energy and Happiness drain over time. Working and training
@@ -92,6 +94,7 @@ src/
     Pets, Outfit      buddies (perks, hunger, names); clothing and skin tone (closet only)
     Jobs, Needs       job shifts with station tasks, promotions; needs drain, training, activities
     Bank              savings interest and Berry Bonds
+    Rewards, Events   calendar / playtime / Home Rewards; Tuesday events
     Arcade, Obby      server-side minigame score checks; obby checkpoints, prizes, moving parts
     Monetization      Robux developer products and game passes
     Quests            daily reward and daily quests
@@ -108,6 +111,7 @@ src/
     JobTracker        job task panel, marker and station prompts
     CooldownsUI       the Cooldowns dropdown
     ClosetUI, BankUI  closet wardrobe; bank teller window
+    RewardsUI, EventBanner   rewards window; event countdown banner
     BerryCatch, Stacker, Memory, Whack, Pattern   the minigames
     State             latest copy of the player's profile
 ```

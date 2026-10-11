@@ -89,6 +89,9 @@ function Phone.open(actions)
 			elseif app.id == "guide" then
 				close()
 				actions.guide()
+			elseif app.id == "rewards" then
+				close()
+				actions.rewards()
 			elseif app.id == "home" then
 				Remotes.get("Teleport"):FireServer("home")
 				close()

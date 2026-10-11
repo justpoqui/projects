@@ -1,4 +1,4 @@
--- Daily login reward and daily quests.
+-- Daily quests. (The daily login reward lives in the Rewards calendar.)
 
 local Players = game:GetService("Players")
 
@@ -25,23 +25,11 @@ local function rollQuests(data, today)
 	data.quests = { day = today, list = list }
 end
 
--- Hands out the daily reward and fresh quests when a new day starts.
+-- Hands out fresh quests when a new day starts.
 -- Returns true if anything changed.
 function Quests.refresh(player, data)
 	local today = Config.today()
 	local changed = false
-
-	if data.daily.day ~= today then
-		local streak = data.daily.day == today - 1 and data.daily.streak + 1 or 1
-		data.daily = { day = today, streak = streak }
-		local reward = Config.DAILY_BASE + Config.DAILY_STEP * (math.min(streak, 7) - 1)
-		if player:GetAttribute("Pass_vip") then
-			reward *= 2
-		end
-		data.bucks += reward
-		PlayerData.notify(player, ("Daily reward: +%d %s! (Day %d streak)"):format(reward, Config.CURRENCY, streak), "success")
-		changed = true
-	end
 
 	if data.quests.day ~= today then
 		rollQuests(data, today)

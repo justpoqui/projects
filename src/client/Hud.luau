@@ -80,7 +80,7 @@ function Hud.init(actions)
 	local right = UI.new("Frame", {
 		-- Kept above the middle so it clears the mobile jump button
 		Name = "RightMenu", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, -40),
-		Size = UDim2.fromOffset(110, 3 * 54), BackgroundTransparency = 1, Parent = UI.Screen,
+		Size = UDim2.fromOffset(110, 4 * 54), BackgroundTransparency = 1, Parent = UI.Screen,
 	}, {
 		UI.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
@@ -88,12 +88,27 @@ function Hud.init(actions)
 		{ text = "🎒 Backpack", color = Theme.Accent, fn = actions.backpack },
 		{ text = "🐾 Buddies", color = Color3.fromRGB(240, 150, 60), fn = actions.pets },
 		{ text = "💎 Store", color = Color3.fromRGB(40, 170, 90), fn = actions.store },
+		{ text = "🎁 Rewards", color = Color3.fromRGB(230, 80, 120), fn = actions.rewards, badge = true },
 	}
 	for i, info in sideButtons do
-		UI.button({
+		local button = UI.button({
 			Text = info.text, Color = info.color, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 46), Parent = right,
 			OnClick = info.fn,
 		})
+		if info.badge then
+			-- Red "!" dot when a reward is ready to claim
+			local dot = UI.new("TextLabel", {
+				Text = "!", Font = Theme.Font, TextScaled = true, TextColor3 = Color3.new(1, 1, 1),
+				BackgroundColor3 = Theme.Bad, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 0, 0, 0),
+				Size = UDim2.fromOffset(22, 22), Visible = false, ZIndex = 3, Parent = button,
+			}, { UI.corner(11) })
+			task.spawn(function()
+				while true do
+					dot.Visible = actions.rewardsReady()
+					task.wait(2)
+				end
+			end)
+		end
 	end
 
 	-- Bottom: quests, house, profile

@@ -13,6 +13,7 @@ local Cooldowns = require(script.Parent.Cooldowns)
 local Pets = require(script.Parent.Pets)
 local Quests = require(script.Parent.Quests)
 local World = require(script.Parent.WorldBuilder)
+local Events = require(script.Parent.Events)
 
 local Jobs = {}
 
@@ -177,6 +178,9 @@ local function payShift(player, jobId)
 	end
 	local vip = player:GetAttribute("Pass_vip") and Config.VIP_PAY_BONUS or 0
 	pay = math.floor(pay * (1 + Pets.buff(player, "workPay") + vip))
+	if Events.isActive("doublepay") then
+		pay *= 2
+	end
 	PlayerData.addBucks(player, pay)
 	PlayerData.addStat(data, "energy", -energyCost(player, job))
 	PlayerData.addStat(data, "hunger", -5)

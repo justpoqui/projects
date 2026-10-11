@@ -13,7 +13,9 @@ local Outfit = require(script.Parent.Outfit)
 local Quests = require(script.Parent.Quests)
 local Cooldowns = require(script.Parent.Cooldowns)
 
-local Shops = {}
+local Shops = {
+	luckyEvent = false, -- set by the Lucky Boxes event
+}
 
 -- [Player] = { store = storeId, part = BasePart } for the counter they opened
 local openShops = {}
@@ -49,6 +51,7 @@ end
 -- random item of that tier.
 local function roll(boxKind, pool, lucky)
 	local byTier = pools[pool]
+	-- Luck only changes odds when a box has more than one tier
 	local chances = Config.boxChances(boxKind, pool, lucky)
 	local r = math.random()
 	local tier
@@ -90,13 +93,14 @@ local function onBuyBox(player, storeId, boxKind)
 	Shops.grantBox(player, storeId, boxKind)
 end
 
--- Rolls a box and gives the result. Used by shop purchases and Robux products.
--- Assumes the caller already checked there's room for a buddy.
-function Shops.grantBox(player, storeId, boxKind)
+-- Rolls a box and gives the result. Used by shop purchases, Robux products
+-- and rewards. refundBase: what a duplicate piece of clothing refunds from
+-- (defaults to the shop price). Assumes the caller checked buddy room.
+function Shops.grantBox(player, storeId, boxKind, refundBase)
 	local data = PlayerData.get(player)
 	local shop = Config.ShopBoxes[storeId]
-	local price = shop.prices[boxKind]
-	local lucky = player:GetAttribute("Pass_lucky") == true
+	local price = refundBase or shop.prices[boxKind] or 0
+	local lucky = player:GetAttribute("Pass_lucky") == true or Shops.luckyEvent == true
 	local rewardId, tier = roll(boxKind, shop.pool, lucky)
 	local refund = 0
 	if shop.pool == "pet" then
@@ -110,6 +114,28 @@ function Shops.grantBox(player, storeId, boxKind)
 	end
 	Remotes.get("BoxOpened"):FireClient(player, storeId, boxKind, rewardId, tier, refund)
 	PlayerData.replicate(player)
+end
+
+-- Gives a reward-only tier box ("tier_Rare", ...) from a random shop that has
+-- that tier. Skips buddies when the collection is full.
+function Shops.grantTierBox(player, boxKind, onlyStore)
+	local data = PlayerData.get(player)
+	local tier = next(Config.BoxKinds[boxKind].odds)
+	local stores = {}
+	for storeId, shop in Config.ShopBoxes do
+		local fits = pools[shop.pool][tier] ~= nil and (shop.pool ~= "pet" or Pets.hasRoom(data))
+		if fits and (not onlyStore or onlyStore == storeId) then
+			table.insert(stores, storeId)
+		end
+	end
+	if #stores == 0 then
+		return false
+	end
+	table.sort(stores)
+	-- Duplicate clothing refunds as if it came from a Royal box
+	local storeId = stores[math.random(#stores)]
+	Shops.grantBox(player, storeId, boxKind, Config.ShopBoxes[storeId].prices.royal)
+	return true
 end
 
 local function onBuyItem(player, itemId)

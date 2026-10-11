@@ -8,6 +8,7 @@ local PlayerData = require(script.Parent.PlayerData)
 local Cooldowns = require(script.Parent.Cooldowns)
 local Pets = require(script.Parent.Pets)
 local Quests = require(script.Parent.Quests)
+local Events = require(script.Parent.Events)
 
 local Needs = {}
 
@@ -72,7 +73,12 @@ function Needs.init()
 	task.spawn(function()
 		while true do
 			task.wait(Config.NEEDS_TICK)
+			local cozy = Events.isActive("cozytime")
 			PlayerData.forEach(function(player, data)
+				if cozy then
+					-- Cozy Time event: needs don't drain
+					return
+				end
 				local wasStarving = data.hunger <= 0
 				PlayerData.addStat(data, "hunger", -Config.HUNGER_DRAIN * (1 - Pets.buff(player, "hungerSaver")))
 				PlayerData.addStat(data, "energy", -Config.ENERGY_DRAIN)

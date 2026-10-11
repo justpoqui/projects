@@ -38,6 +38,9 @@ local EVENTS = {
 	"BankCollectBond", -- client -> server: bond uid
 	"OpenCloset", -- server -> client
 	"SetSkinTone", -- client -> server: index into Config.SkinTones (0 = avatar default)
+	"ClaimCalendar", -- client -> server: today's calendar reward
+	"ClaimPlaytime", -- client -> server: playtime reward index
+	"ClaimHomeReward", -- client -> server: today's Home Reward
 }
 
 local FUNCTIONS = {

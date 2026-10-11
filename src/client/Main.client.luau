@@ -7,7 +7,6 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Remotes = require(Shared.Remotes)
 
 local UI = require(script.Parent.UI)
-require(script.Parent.State)
 local Hud = require(script.Parent.Hud)
 local Panels = require(script.Parent.Panels)
 local Placement = require(script.Parent.Placement)
@@ -20,6 +19,9 @@ local JobTracker = require(script.Parent.JobTracker)
 local CooldownsUI = require(script.Parent.CooldownsUI)
 local ClosetUI = require(script.Parent.ClosetUI)
 local BankUI = require(script.Parent.BankUI)
+local RewardsUI = require(script.Parent.RewardsUI)
+local EventBanner = require(script.Parent.EventBanner)
+local State = require(script.Parent.State)
 -- Minigames register themselves with Arcade
 require(script.Parent.BerryCatch)
 require(script.Parent.Stacker)
@@ -52,6 +54,12 @@ end
 function actions.visit()
 	HouseUI.visit()
 end
+function actions.rewards()
+	RewardsUI.open()
+end
+function actions.rewardsReady()
+	return RewardsUI.claimable(State.data)
+end
 function actions.guide()
 	Panels.guide()
 end
@@ -65,6 +73,7 @@ end
 
 Hud.init(actions)
 CooldownsUI.init()
+EventBanner.init()
 
 Remotes.get("Notify").OnClientEvent:Connect(UI.notify)
 Remotes.get("OpenShop").OnClientEvent:Connect(Panels.shop)

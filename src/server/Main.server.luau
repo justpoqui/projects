@@ -22,6 +22,8 @@ local Quests = require(script.Parent.Quests)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Monetization = require(script.Parent.Monetization)
 local Bank = require(script.Parent.Bank)
+local Rewards = require(script.Parent.Rewards)
+local Events = require(script.Parent.Events)
 
 World.build()
 PlayerData.init()
@@ -37,6 +39,8 @@ Quests.init()
 Leaderboard.init()
 Monetization.init()
 Bank.init()
+Rewards.init()
+Events.init()
 
 local handlers = {
 	Shop = function(player, prompt)

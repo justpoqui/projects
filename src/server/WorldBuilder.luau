@@ -1077,6 +1077,23 @@ function World.build()
 		boardText(board, section.title, section.color, table.concat(section.lines, "\n"))
 	end
 
+	-- Event Board on the east side of the plaza, facing the middle (-X)
+	local eventBoard = part(root, {
+		Name = "EventBoard", Size = Vector3.new(14, 10, 0.6), CFrame = CFrame.new(36, 7, -64) * CFrame.Angles(0, math.pi / 2, 0),
+		Color = Color3.fromRGB(255, 245, 210),
+	})
+	part(root, {
+		Name = "BoardPost", Size = Vector3.new(1, 3, 1), CFrame = CFrame.new(36.5, 1.5, -64),
+		Color = Color3.fromRGB(120, 85, 55), Material = Enum.Material.Wood,
+	})
+	local eventGui = nil
+	function World.setEventBoard(title, body)
+		if eventGui then
+			eventGui:Destroy()
+		end
+		eventGui = boardText(eventBoard, "📢 " .. title, Color3.fromRGB(230, 80, 120), body)
+	end
+
 	-- Job Center board on the east side of the plaza, facing the middle (-X)
 	local jobLines = {}
 	for _, jobId in { "factory", "grocer", "mail", "scientist", "cityhall" } do

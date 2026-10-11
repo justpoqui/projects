@@ -235,6 +235,8 @@ Config.Guide = {
 			"- Play 5 games at the Berry Arcade and beat both Berry Dash obby levels.",
 			"- Collect buddies, upgrade your house, and dress up at your closet.",
 			"- Save in the Berry Bank, finish daily quests, and like your neighbors' houses.",
+			"- Claim Rewards: the daily calendar, playtime rewards every 10 minutes, and Home Rewards.",
+			"- Tuesdays are event days: watch the Event Board in the Town Square!",
 		},
 	},
 	{
@@ -306,6 +308,14 @@ Config.BoxKinds = {
 		odds = { Uncommon = 10, Rare = 40, Epic = 37, Legendary = 13 } },
 }
 Config.BoxKindOrder = { "basic", "sparkle", "royal" }
+
+-- Reward-only boxes that guarantee one rarity tier ("tier_Rare" = tier 3,
+-- "tier_Epic" = tier 4, ...). Not sold in shops.
+for _, tier in { "Common", "Uncommon", "Rare", "Epic", "Legendary" } do
+	Config.BoxKinds["tier_" .. tier] = {
+		name = tier .. " Berry Box", color = Config.Tiers[tier].color, reward = true, odds = { [tier] = 1 },
+	}
+end
 
 -- What each shop's boxes contain and cost: { pool, prices by box kind }
 -- pool is an item category, or "pet" for buddies.
@@ -524,6 +534,7 @@ Config.PhoneApps = {
 	{ id = "store", label = "Robux Store", icon = "💎", color = Color3.fromRGB(40, 170, 90) },
 	{ id = "bank", label = "Bank", icon = "🏦", color = Color3.fromRGB(200, 160, 40) },
 	{ id = "guide", label = "Guide", icon = "📖", color = Color3.fromRGB(90, 120, 220) },
+	{ id = "rewards", label = "Rewards", icon = "🎁", color = Color3.fromRGB(230, 80, 120) },
 	{ id = "maplecourt", label = "Maple Court", icon = "🍁", color = Color3.fromRGB(220, 110, 50) },
 	{ id = "willowway", label = "Willow Way", icon = "🌳", color = Color3.fromRGB(70, 150, 90) },
 	{ id = "grocery", label = "Grocery", icon = "🍎", color = Color3.fromRGB(230, 80, 80) },
@@ -562,6 +573,77 @@ Config.Passes = {
 }
 Config.VIP_PAY_BONUS = 0.25
 Config.LUCKY_MULTIPLIER = 2 -- applied to Epic and Legendary box weights
+
+-- Rewards -------------------------------------------------------------------------
+-- All days are UTC so every server agrees on what "today" is.
+
+Config.Calendar = {
+	daily = 100, -- every day
+	tuesday = 150, -- event day
+	thursdayBox = "tier_Rare", -- tier 3 box on Thursdays
+	lastDay = 500, -- last day of the month
+}
+
+-- Playtime rewards: one every 10 minutes of play; the 60-minute reward is a
+-- tier 4 (Epic) box, then the cycle starts over.
+Config.Playtime = {
+	{ minutes = 10, bucks = 100 },
+	{ minutes = 20, bucks = 200 },
+	{ minutes = 30, bucks = 400 },
+	{ minutes = 40, bucks = 600 },
+	{ minutes = 50, bucks = 1000 },
+	{ minutes = 60, box = "tier_Epic" },
+}
+
+-- Home Rewards: one claim per day, a random furniture item that climbs in
+-- tier through the week, then starts over.
+Config.HomeRewards = { "Common", "Common", "Uncommon", "Uncommon", "Rare", "Epic", "Legendary" }
+
+-- Tuesday events: each hour one event is posted, then starts at a random minute.
+Config.EVENT_WEEKDAY = 3 -- os.date wday: 1 = Sunday, 3 = Tuesday
+Config.EVENTS_EVERY_DAY = false -- set true to test events on any day
+Config.EVENT_POST_LEAD = 5 * 60 -- the posting goes up at least this long before the start
+Config.Events = {
+	{ id = "berryrain", name = "Berry Rain", icon = "🫐", duration = 300,
+		desc = "Berries fall from the sky in the Town Square. Grab them for Berrybucks!" },
+	{ id = "doublepay", name = "Double Pay", icon = "💰", duration = 600,
+		desc = "Every job shift pays double!" },
+	{ id = "luckyhour", name = "Lucky Boxes", icon = "🍀", duration = 600,
+		desc = "Epic and Legendary chances are doubled in every Berry Box!" },
+	{ id = "cozytime", name = "Cozy Time", icon = "☕", duration = 600,
+		desc = "Hunger, Energy and Happy don't go down!" },
+}
+Config.BERRY_RAIN_VALUE = 10
+Config.BERRY_RAIN_MAX = 300 -- most Berrybucks one player can grab per Berry Rain
+
+local MONTH_DAYS = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+function Config.daysInMonth(year, month)
+	if month == 2 and (year % 4 == 0 and (year % 100 ~= 0 or year % 400 == 0)) then
+		return 29
+	end
+	return MONTH_DAYS[month]
+end
+
+-- UTC date parts for a unix time: { year, month, day, wday }
+function Config.utcDate(t)
+	return os.date("!*t", t or os.time())
+end
+
+-- What a calendar day pays. wday: 1 = Sunday.
+function Config.calendarReward(day, wday, daysInMonth)
+	local reward = { bucks = Config.Calendar.daily }
+	if wday == Config.EVENT_WEEKDAY then
+		reward.bucks = Config.Calendar.tuesday
+		reward.event = true
+	end
+	if wday == 5 then -- Thursday
+		reward.box = Config.Calendar.thursdayBox
+	end
+	if day == daysInMonth then
+		reward.bucks = Config.Calendar.lastDay
+	end
+	return reward
+end
 
 function Config.jobPay(jobId, level)
 	local job = Config.Jobs[jobId]

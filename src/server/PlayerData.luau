@@ -52,6 +52,9 @@ local function template()
 		receipts = {}, -- [purchaseId] = os.time(): Robux purchases already granted
 		bank = { savings = 0, lastInterest = 0, bonds = {} }, -- bonds: { uid, id, amount, payout, matures }
 		skin = 0, -- index into Config.SkinTones, 0 = the avatar's own colors
+		calendar = { month = "", claimed = {} }, -- claimed: ["12"] = true for day 12
+		playtime = { seconds = 0, claimed = {} }, -- claimed: ["3"] = true for the 3rd reward
+		homeRewards = { step = 1, lastDay = 0 },
 		nextUid = 1,
 	}
 end

@@ -41,8 +41,27 @@ local function entries()
 				table.insert(list, { name = level.name .. " prize", left = last + level.cooldown - unix })
 			end
 		end
-		if data.daily and data.daily.day == Config.today() then
-			table.insert(list, { name = "Next daily reward", left = (Config.today() + 1) * 86400 - unix })
+		local untilMidnight = (Config.today() + 1) * 86400 - unix
+		local date = Config.utcDate()
+		local monthKey = ("%04d-%02d"):format(date.year, date.month)
+		if data.calendar and data.calendar.month == monthKey and data.calendar.claimed[tostring(date.day)] then
+			table.insert(list, { name = "Next calendar reward", left = untilMidnight })
+		end
+		if data.homeRewards and data.homeRewards.lastDay == Config.today() then
+			table.insert(list, { name = "Next Home Reward", left = untilMidnight })
+		end
+		if data.playtime then
+			for i, slot in Config.Playtime do
+				local at = slot.minutes * 60
+				if not data.playtime.claimed[tostring(i)] and data.playtime.seconds < at then
+					table.insert(list, { name = "Next playtime reward", left = at - data.playtime.seconds })
+					break
+				end
+			end
+		end
+		local eventStart = game:GetService("ReplicatedStorage"):GetAttribute("EventStart")
+		if eventStart and eventStart > unix then
+			table.insert(list, { name = "Tuesday event", left = eventStart - unix })
 		end
 		for _, bond in (data.bank and data.bank.bonds) or {} do
 			local name = "Bond (" .. bond.amount .. ")"
