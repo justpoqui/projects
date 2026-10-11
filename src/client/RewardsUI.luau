@@ -36,7 +36,7 @@ function RewardsUI.claimable(data)
 	if not data or not data.calendar then
 		return false
 	end
-	local date = Config.utcDate()
+	local date = Config.gameDate()
 	local monthKey = ("%04d-%02d"):format(date.year, date.month)
 	if data.calendar.month ~= monthKey or not data.calendar.claimed[tostring(date.day)] then
 		return true
@@ -61,7 +61,7 @@ local function rewardText(reward)
 end
 
 local function renderCalendar(content, data)
-	local date = Config.utcDate()
+	local date = Config.gameDate()
 	local days = Config.daysInMonth(date.year, date.month)
 	local monthKey = ("%04d-%02d"):format(date.year, date.month)
 	local claimed = data.calendar.month == monthKey and data.calendar.claimed or {}
@@ -134,8 +134,8 @@ local function renderCalendar(content, data)
 		Size = UDim2.new(1, 0, 0, 36), LayoutOrder = 3, Parent = content,
 	})
 	UI.label({
-		Text = missedCount > 0 and ("You missed %d day%s this month. Days reset at midnight UTC."):format(missedCount, missedCount == 1 and "" or "s")
-			or "No missed days this month. Days reset at midnight UTC.",
+		Text = missedCount > 0 and ("You missed %d day%s this month. Days reset at midnight Eastern Time."):format(missedCount, missedCount == 1 and "" or "s")
+			or "No missed days this month. Days reset at midnight Eastern Time.",
 		Font = Theme.BodyFont, TextScaled = false, TextSize = 14, TextColor3 = missedCount > 0 and Theme.Bad or Theme.Good,
 		Size = UDim2.new(1, 0, 0, 18), LayoutOrder = 4, Parent = content,
 	})

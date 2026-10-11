@@ -76,7 +76,7 @@ end
 
 function Quests.init()
 	Remotes.get("ClaimQuest").OnServerEvent:Connect(onClaim)
-	-- Roll over at midnight (UTC) for players who stay online.
+	-- Roll over at midnight Eastern for players who stay online.
 	task.spawn(function()
 		while true do
 			task.wait(60)

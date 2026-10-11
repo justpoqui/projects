@@ -37,11 +37,11 @@ local function notifyAll(message, kind)
 end
 
 local function clockText(unix)
-	return os.date("!%H:%M", unix) .. " UTC"
+	return os.date("!%I:%M %p", Config.easternTime(unix)):gsub("^0", "") .. " ET"
 end
 
 local function isEventDay()
-	return Config.EVENTS_EVERY_DAY or Config.utcDate().wday == Config.EVENT_WEEKDAY
+	return Config.EVENTS_EVERY_DAY or Config.gameDate().wday == Config.EVENT_WEEKDAY
 end
 
 local function setBoard()

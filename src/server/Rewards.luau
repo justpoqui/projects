@@ -1,5 +1,5 @@
 -- Daily calendar, playtime rewards (every 10 minutes) and weekly Home
--- Rewards. Days are UTC.
+-- Rewards. Days follow US Eastern Time.
 
 local Players = game:GetService("Players")
 
@@ -22,7 +22,7 @@ end
 
 -- Starts a fresh calendar when the month changes.
 local function calendar(data)
-	local key = monthKey(Config.utcDate())
+	local key = monthKey(Config.gameDate())
 	if data.calendar.month ~= key then
 		data.calendar = { month = key, claimed = {} }
 	end
@@ -39,7 +39,7 @@ local function claimCalendar(player)
 		return
 	end
 	local cal = calendar(data)
-	local date = Config.utcDate()
+	local date = Config.gameDate()
 	local key = tostring(date.day)
 	if cal.claimed[key] then
 		PlayerData.notify(player, "You already claimed today's reward. See you tomorrow!", "info")

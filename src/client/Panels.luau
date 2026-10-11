@@ -395,7 +395,7 @@ function Panels.quests()
 			end
 		end
 		UI.label({
-			Text = "New quests every day (UTC midnight).", Font = Theme.BodyFont, TextColor3 = Theme.Muted,
+			Text = "New quests every day at midnight Eastern Time.", Font = Theme.BodyFont, TextColor3 = Theme.Muted,
 			Size = UDim2.new(1, 0, 0, 18), LayoutOrder = 100, Parent = content,
 		})
 	end)

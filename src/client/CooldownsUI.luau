@@ -41,8 +41,8 @@ local function entries()
 				table.insert(list, { name = level.name .. " prize", left = last + level.cooldown - unix })
 			end
 		end
-		local untilMidnight = (Config.today() + 1) * 86400 - unix
-		local date = Config.utcDate()
+		local untilMidnight = Config.secondsToNextDay()
+		local date = Config.gameDate()
 		local monthKey = ("%04d-%02d"):format(date.year, date.month)
 		if data.calendar and data.calendar.month == monthKey and data.calendar.claimed[tostring(date.day)] then
 			table.insert(list, { name = "Next calendar reward", left = untilMidnight })

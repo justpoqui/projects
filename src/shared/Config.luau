@@ -519,8 +519,58 @@ Config.Quests = {
 	{ id = "relax", text = "Use furniture at home twice", event = "activity", goal = 2, reward = 30 },
 }
 
+-- The game runs on US Eastern Time (EST/EDT): days, the calendar, and
+-- Tuesday events all roll over at midnight Eastern.
+
+-- Days since 1970-01-01 for a calendar date (proleptic Gregorian).
+local function daysFromCivil(y, m, d)
+	if m <= 2 then
+		y -= 1
+	end
+	local era = (y >= 0 and y or y - 399) // 400
+	local yoe = y - era * 400
+	local mp = (m + 9) % 12
+	local doy = (153 * mp + 2) // 5 + d - 1
+	local doe = yoe * 365 + yoe // 4 - yoe // 100 + doy
+	return era * 146097 + doe - 719468
+end
+
+-- Unix time of the nth Sunday (n = 1 for the first) of a month, at a UTC hour.
+local function nthSunday(year, month, n, utcHour)
+	local first = daysFromCivil(year, month, 1)
+	local weekday = (first + 4) % 7 -- 0 = Sunday (1970-01-01 was a Thursday)
+	local sunday = first + (7 - weekday) % 7 + (n - 1) * 7
+	return sunday * 86400 + utcHour * 3600
+end
+
+-- Seconds to add to UTC to get Eastern Time at unix time t (-4h in summer, -5h in winter).
+-- Daylight time runs from 2 AM on the second Sunday in March to 2 AM on the
+-- first Sunday in November.
+function Config.easternOffset(t)
+	t = t or os.time()
+	local year = os.date("!*t", t).year
+	local dstStart = nthSunday(year, 3, 2, 7) -- 2 AM EST = 07:00 UTC
+	local dstEnd = nthSunday(year, 11, 1, 6) -- 2 AM EDT = 06:00 UTC
+	if t >= dstStart and t < dstEnd then
+		return -4 * 3600
+	end
+	return -5 * 3600
+end
+
+-- Eastern "wall clock" time as a unix-like number (for date math only).
+function Config.easternTime(t)
+	t = t or os.time()
+	return t + Config.easternOffset(t)
+end
+
+-- Day number in Eastern Time (changes at midnight Eastern).
 function Config.today()
-	return math.floor(os.time() / 86400)
+	return math.floor(Config.easternTime() / 86400)
+end
+
+-- Seconds until the next Eastern midnight.
+function Config.secondsToNextDay()
+	return 86400 - Config.easternTime() % 86400
 end
 
 -- Berry Phone ----------------------------------------------------------------
@@ -575,7 +625,8 @@ Config.VIP_PAY_BONUS = 0.25
 Config.LUCKY_MULTIPLIER = 2 -- applied to Epic and Legendary box weights
 
 -- Rewards -------------------------------------------------------------------------
--- All days are UTC so every server agrees on what "today" is.
+-- All days use US Eastern Time (see Config.today) so every server agrees on
+-- what "today" is.
 
 Config.Calendar = {
 	daily = 100, -- every day
@@ -624,9 +675,9 @@ function Config.daysInMonth(year, month)
 	return MONTH_DAYS[month]
 end
 
--- UTC date parts for a unix time: { year, month, day, wday }
-function Config.utcDate(t)
-	return os.date("!*t", t or os.time())
+-- Eastern Time date parts for a unix time: { year, month, day, hour, min, wday }
+function Config.gameDate(t)
+	return os.date("!*t", Config.easternTime(t))
 end
 
 -- What a calendar day pays. wday: 1 = Sunday.
