@@ -7,7 +7,7 @@ day. Open `index.html` in a browser; there is nothing to build or install.
 
 | Panel | What it shows |
 | --- | --- |
-| **Watchlist basket** | P&L of a $1,000 position in every ticker since the previous close, plus the four biggest movers. |
+| **Watchlist basket** | P&L of a $1 position in every ticker since the previous close, plus the four biggest movers. |
 | **Top movers** | Rotates through the five biggest movers with an intraday chart. Tap a row in the table to focus a ticker. |
 | **Breadth Board** | One ball per ticker, binned by % change. Shows advancers vs decliners, the median move and breadth over time. |
 | **Intraday Ridge** | Each ticker's session path as a ridge, sorted strongest to weakest. Red fill means it is below yesterday's close. |

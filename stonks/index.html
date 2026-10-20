@@ -151,7 +151,7 @@
 
 <div class="hero heroRow">
   <section class="card">
-    <div class="chips"><span class="lbl">• Watchlist basket · $1,000 per ticker · vs prev close</span> <span class="chip red" id="basketTag">DAILY MOVERS</span></div>
+    <div class="chips"><span class="lbl">• Watchlist basket · $1 per ticker · vs prev close</span> <span class="chip red" id="basketTag">DAILY MOVERS</span></div>
     <div class="big" id="basketPnl">$0.00</div>
     <div class="chips" id="heroChips"></div>
     <div class="movers" id="movers"></div>
@@ -263,6 +263,7 @@ const META = {
 };
 const metaOf = s => META[s] || {p:50,s:"other",b:1.2,i:.0018,v:20e6};
 const SESSION_MIN = 390; // 9:30 to 16:00
+const STAKE = 1;       // dollars put into each ticker for the basket P&L
 
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -493,13 +494,13 @@ function sparkSvg(path, w, h, pc, opts = {}) {
 }
 
 function renderHero(qs, byMove) {
-  const pnl = qs.reduce((a, q) => a + 10 * pct(q), 0);
-  const el = $("basketPnl"); el.textContent = fmtSigned$(pnl); el.className = "big " + cls(pnl);
+  const pnl = qs.reduce((a, q) => a + STAKE * pct(q) / 100, 0);
+  const el = $("basketPnl"); el.textContent = fmtSigned$(pnl, 3); el.className = "big " + cls(pnl);
   const adv = qs.filter(q => pct(q) >= 0).length;
   const vol = qs.reduce((a, q) => a + (q.vol || 0), 0);
   const avg = qs.reduce((a, q) => a + pct(q), 0) / qs.length;
-  $("heroChips").innerHTML = `<span>basket ${fmtMoney(qs.length * 1000, 0)}</span><span class="chip">${qs.length} tickers</span><span class="chip">${Math.round(adv / qs.length * 100)}% green</span><span class="chip">avg ${fmtPct(avg)}</span><span class="chip">vol ${fmtVol(vol)}</span>`;
-  $("movers").innerHTML = byMove.slice(0, 4).map(q => { const p = pct(q); return `<div data-sym="${esc(q.sym)}"><b class="${cls(p)}">${fmtSigned$(10 * p)}</b><small>${esc(q.sym)} ${fmtPct(p, 1)} · $${fmtPrice(q.price)}</small></div>`; }).join("");
+  $("heroChips").innerHTML = `<span>basket ${fmtMoney(qs.length * STAKE, 0)}</span><span class="chip">${qs.length} tickers</span><span class="chip">${Math.round(adv / qs.length * 100)}% green</span><span class="chip">avg ${fmtPct(avg)}</span><span class="chip">vol ${fmtVol(vol)}</span>`;
+  $("movers").innerHTML = byMove.slice(0, 4).map(q => { const p = pct(q); return `<div data-sym="${esc(q.sym)}"><b class="${cls(p)}">${fmtSigned$(STAKE * p / 100, 3)}</b><small>${esc(q.sym)} ${fmtPct(p, 1)} · $${fmtPrice(q.price)}</small></div>`; }).join("");
 }
 
 function renderTop(byMove) {
@@ -512,7 +513,7 @@ function renderTop(byMove) {
   $("topIdx").textContent = focus.sym ? "FOCUSED" : `${(focus.i % top.length) + 1} / ${top.length}`;
   $("topSym").textContent = q.sym;
   const tp = $("topPct"); tp.textContent = fmtPct(p); tp.className = cls(p);
-  $("topPnl").textContent = fmtSigned$(10 * p) + " per $1k";
+  $("topPnl").textContent = fmtSigned$(STAKE * p / 100, 3) + " per $1";
   $("topMeta").innerHTML = `<span>PREV<b>$${fmtPrice(q.prevClose)}</b></span><span>NOW<b>$${fmtPrice(q.price)}</b></span><span>RANGE<b>${fmtPrice(q.low)}–${fmtPrice(q.high)}</b></span>`;
   const w = Math.max(200, $("topChart").clientWidth);
   $("topChart").innerHTML = sparkSvg(q.path, w, 110, q.prevClose, { area: true, dot: true, sw: 1.6 });
